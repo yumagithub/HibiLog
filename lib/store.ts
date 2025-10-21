@@ -9,6 +9,8 @@ interface Memory {
   timestamp: string
 }
 
+type View = "upload" | "memories" | "settings"
+
 interface BakuStore {
   hunger: number
   lastFed: string | null
@@ -16,12 +18,14 @@ interface BakuStore {
   memories: Memory[]
   notificationsEnabled: boolean
   notificationInterval: number
+  activeView: View
 
   feedBaku: () => void
   addMemory: (memory: Memory) => void
   updateHunger: () => void
   toggleNotifications: () => void
   setNotificationInterval: (interval: number) => void
+  setActiveView: (view: View) => void
 }
 
 const calculateStatus = (hunger: number): BakuStatus => {
@@ -51,6 +55,7 @@ export const useBakuStore = create<BakuStore>()(
       ],
       notificationsEnabled: false,
       notificationInterval: 6,
+      activeView: "upload",
 
       feedBaku: () => {
         set({
@@ -88,6 +93,10 @@ export const useBakuStore = create<BakuStore>()(
 
       setNotificationInterval: (interval) => {
         set({ notificationInterval: interval })
+      },
+
+      setActiveView: (view) => {
+        set({ activeView: view })
       },
     }),
     {
