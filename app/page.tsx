@@ -7,6 +7,7 @@ import { UploadTab } from "@/components/upload-tab"
 import { MemoriesTab } from "@/components/memories-tab"
 import { SettingsTab } from "@/components/settings-tab"
 import { Camera, ImageIcon, Settings } from "lucide-react"
+import Link from "next/link"
 
 export default function HibiLogApp() {
   const [activeTab, setActiveTab] = useState("upload")
@@ -54,5 +55,9 @@ export default function HibiLogApp() {
         </Tabs>
       </div>
     </div>
+
+    
   )
+  
 }
+
