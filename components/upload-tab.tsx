@@ -85,8 +85,53 @@ export function UploadTab() {
         throw new Error(`データベースへの保存に失敗しました: ${insertError.message}`)
       }
 
+      // 4. バクの空腹度を回復させる
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from("baku_profiles")
+          .select("hunger_level")
+          .eq("user_id", TEST_USER_ID)
+          .single();
+
+        // 予期せぬエラーはスローする (行がないエラーPGRST116は正常系として扱う)
+        if (profileError && profileError.code !== 'PGRST116') {
+          throw profileError;
+        }
+
+        if (profile) {
+          // --- プロフィールが存在する場合: UPDATE ---
+          const currentHunger = profile.hunger_level;
+          const newHungerLevel = Math.min(100, currentHunger + 20);
+          const { error: updateError } = await supabase
+            .from('baku_profiles')
+            .update({
+              hunger_level: newHungerLevel,
+              last_fed_at: new Date().toISOString(),
+            })
+            .eq('user_id', TEST_USER_ID);
+          if (updateError) throw updateError;
+
+        } else {
+          // --- プロフィールが存在しない場合: INSERT ---
+          const { error: insertError } = await supabase
+            .from('baku_profiles')
+            .insert({
+              user_id: TEST_USER_ID,
+              hunger_level: 70, // 初期値50 + 回復量20を想定
+              baku_color: 'blue', // 初期値
+              // last_fed_at, size, weightなどはDBのデフォルト値が使われる
+            });
+          if (insertError) throw insertError;
+        }
+
+      } catch (error) {
+        // 空腹度の更新に失敗しても、思い出の投稿は成功しているため、
+        // エラーは投げずにコンソールに出力するに留める
+        console.error("バクの空腹度の更新に失敗しました:", (error as Error).message);
+      }
+
       // 成功！
-      setMessage({ type: 'success', text: "思い出をバクに与えました！" })
+      setMessage({ type: 'success', text: "思い出をバクに与えました！ バクが喜んでいます。" });
       // フォームをリセット
       setMemoryDate(new Date().toISOString().split('T')[0])
       setTextContent("")

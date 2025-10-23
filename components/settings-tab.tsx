@@ -1,21 +1,27 @@
-"use client"
+"use client";
 
-import { Card } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Button } from "@/components/ui/button"
-import { useBakuStore } from "@/lib/store"
-import { Bell } from "lucide-react"
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { useBakuStore } from "@/lib/store";
+import { Bell, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const intervals = [
   { value: 3, label: "3時間おき" },
   { value: 6, label: "6時間おき" },
   { value: 12, label: "12時間おき" },
   { value: 24, label: "24時間おき" },
-]
+];
 
 export function SettingsTab() {
-  const { notificationsEnabled, notificationInterval, toggleNotifications, setNotificationInterval } = useBakuStore()
+  const {
+    notificationsEnabled,
+    notificationInterval,
+    toggleNotifications,
+    setNotificationInterval,
+  } = useBakuStore();
 
   return (
     <Card className="p-6 space-y-6">
@@ -25,9 +31,15 @@ export function SettingsTab() {
           <Label htmlFor="notifications" className="text-base font-medium">
             通知
           </Label>
-          <p className="text-sm text-muted-foreground">バクが空腹になったら通知します</p>
+          <p className="text-sm text-muted-foreground">
+            バクが空腹になったら通知します
+          </p>
         </div>
-        <Switch id="notifications" checked={notificationsEnabled} onCheckedChange={toggleNotifications} />
+        <Switch
+          id="notifications"
+          checked={notificationsEnabled}
+          onCheckedChange={toggleNotifications}
+        />
       </div>
 
       {/* Notification Interval */}
@@ -35,17 +47,29 @@ export function SettingsTab() {
         <div className="space-y-3 pt-4 border-t">
           <Label className="text-base font-medium">通知間隔</Label>
           <div className="grid grid-cols-2 gap-3">
-            {intervals.map((interval) => (
-              <Button
-                key={interval.value}
-                variant={notificationInterval === interval.value ? "default" : "outline"}
-                onClick={() => setNotificationInterval(interval.value)}
-                className="h-auto py-3"
-              >
-                <Bell className="h-4 w-4 mr-2" />
-                {interval.label}
-              </Button>
-            ))}
+            {intervals.map((interval) => {
+              const isSelected = notificationInterval === interval.value;
+              return (
+                <Button
+                  key={interval.value}
+                  variant="default"
+                  onClick={() => setNotificationInterval(interval.value)}
+                  className={cn(
+                    "h-auto py-3 transition-all duration-200 relative",
+                    isSelected
+                      ? "scale-105 shadow-lg ring-2 ring-primary/30"
+                      : "opacity-50 scale-95 hover:opacity-70 hover:scale-100"
+                  )}
+                >
+                  {isSelected ? (
+                    <Check className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Bell className="h-4 w-4 mr-2" />
+                  )}
+                  {interval.label}
+                </Button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -60,5 +84,5 @@ export function SettingsTab() {
         </div>
       </div>
     </Card>
-  )
+  );
 }

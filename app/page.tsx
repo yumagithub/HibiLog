@@ -1,47 +1,52 @@
-"use client"
+"use client";
 
-import { useBakuStore } from "@/lib/store"
-import { BakuDisplay } from "@/components/baku-display"
-import { UploadTab } from "@/components/upload-tab"
-import { MemoriesTab } from "@/components/memories-tab"
-import { SettingsTab } from "@/components/settings-tab"
+import { useBakuStore } from "@/lib/store";
+import { BakuDisplay } from "@/components/baku-display";
+import { UploadTab } from "@/components/upload-tab";
+import { MemoriesTab } from "@/components/memories-tab";
+import { SettingsTab } from "@/components/settings-tab";
+import { BottomNav } from "@/components/bottom-nav";
 
 const CurrentView = () => {
-  const activeView = useBakuStore((state) => state.activeView)
+  const activeView = useBakuStore((state) => state.activeView);
 
   switch (activeView) {
     case "upload":
-      return <UploadTab />
+      return <UploadTab />;
     case "memories":
-      return <MemoriesTab />
+      return <MemoriesTab />;
     case "settings":
-      return <SettingsTab />
+      return <SettingsTab />;
     default:
-      return <UploadTab />
+      return <UploadTab />;
   }
-}
+};
 
 export default function HibiLogApp() {
   return (
-    <div className="min-h-screen gradient-bg">
-      <div className="container max-w-md mx-auto px-4 py-6">
-        {/* Header */}
-        <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">HibiLog</h1>
-          <p className="text-sm text-muted-foreground">{"思い出を食べるバクを育てよう"}</p>
-        </header>
+    <>
+      {/* Responsive padding for bottom nav */}
+      <div className="min-h-screen gradient-bg pb-24 md:pb-6">
+        {/* Responsive container width */}
+        <div className="container max-w-md md:max-w-full mx-auto px-4 md:px-6 py-6">
+          {/* Header */}
+          <header className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-foreground mb-2">HibiLog</h1>
+            <p className="text-sm text-muted-foreground">
+              {"思い出を食べるバクを育てよう"}
+            </p>
+          </header>
 
-        {/* Baku Character Display */}
-        <BakuDisplay />
+          {/* Baku Character Display */}
+          <BakuDisplay />
 
-        {/* Content Area */}
-        <main className="mt-8">
-          <CurrentView />
-        </main>
+          {/* Content Area */}
+          <main className="mt-8">
+            <CurrentView />
+          </main>
+        </div>
       </div>
-    </div>
-
-    
-  )
+      <BottomNav />
+    </>
+  );
 }
-

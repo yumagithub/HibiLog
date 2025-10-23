@@ -57,7 +57,8 @@ export function BakuDisplay() {
 
       {/* Baku Character Card */}
       <Card className="relative overflow-hidden border-2 baku-glow">
-        <div className="aspect-square relative bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/20 flex items-center justify-center p-8">
+        {/* Baku Character Area */}
+        <div className="aspect-square md:aspect-auto md:h-[40vh] relative flex items-center justify-center p-8 pb-28">
           {/* Baku Character Illustration */}
           <div className="relative">
             <div className="w-32 h-32 animate-bounce-slow">
@@ -78,8 +79,8 @@ export function BakuDisplay() {
         </div>
 
         {/* Status Info */}
-        <div className="p-6 space-y-4 bg-card">
-          <div className="text-center">
+        <div className="absolute bottom-0 left-0 right-0 p-4 space-y-3 bg-white/90 backdrop-blur-md rounded-b-[26px]">
+          <div className="text-centerp-3">
             <p className="text-sm font-medium text-muted-foreground mb-1">
               状態
             </p>
@@ -89,7 +90,7 @@ export function BakuDisplay() {
           </div>
 
           {/* Hunger Bar */}
-          <div className="space-y-2">
+          <div className="space-y-2p-3">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>満腹度</span>
               <span>{hunger}%</span>
@@ -101,7 +102,7 @@ export function BakuDisplay() {
           </div>
 
           {lastFed && (
-            <p className="text-xs text-center text-muted-foreground">
+            <p className="text-xs text-center text-muted-foreground clay-input p-3">
               最後の食事: {new Date(lastFed).toLocaleString("ja-JP")}
             </p>
           )}
