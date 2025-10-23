@@ -1,126 +1,171 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useCallback } from "react"
+import { useState } from "react"
+import { supabase } from "@/lib/supabase"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Upload, Camera } from "lucide-react"
-import { useBakuStore } from "@/lib/store"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Upload, Camera, Terminal, CheckCircle, XCircle } from "lucide-react"
+
+// 仮のユーザーID (テスト用)
+const TEST_USER_ID = "23824aa8-2e71-4bde-8d45-a7b1e5c6d86d"
 
 export function UploadTab() {
-  const [isDragging, setIsDragging] = useState(false)
+  const [memoryDate, setMemoryDate] = useState(new Date().toISOString().split('T')[0])
+  const [textContent, setTextContent] = useState("")
+  const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
-  // const { toast } = useToast()
-  const { feedBaku, addMemory } = useBakuStore()
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  const handleFile = useCallback(
-    async (file: File) => {
-      if (!file.type.startsWith("image/")) {
-        // toast({
-        //   title: "エラー",
-        //   description: "画像ファイルを選択してください",
-        //   variant: "destructive",
-        // })
-        return
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files && files[0]) {
+      setFile(files[0])
+      setMessage(null)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!file) {
+      setMessage({ type: 'error', text: "思い出の画像を選択してください。" })
+      return
+    }
+    if (!memoryDate) {
+      setMessage({ type: 'error', text: "思い出の日付を入力してください。" })
+      return
+    }
+
+    setIsUploading(true)
+    setMessage(null)
+
+    try {
+      // 1. ファイルをSupabase Storageにアップロード
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}.${fileExt}`
+      const filePath = `public/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from("memories_media")
+        .upload(filePath, file)
+
+      if (uploadError) {
+        throw new Error(`ストレージへのアップロードに失敗しました: ${uploadError.message}`)
       }
 
-      setIsUploading(true)
+      // 2. アップロードしたファイルの公開URLを取得
+      const { data: publicUrlData } = supabase.storage
+        .from("memories_media")
+        .getPublicUrl(filePath)
 
-      try {
-        // Create object URL for preview
-        const imageUrl = URL.createObjectURL(file)
-
-        // Add memory and feed Baku
-        addMemory({
-          id: Date.now().toString(),
-          imageUrl,
-          timestamp: new Date().toISOString(),
-        })
-
-        feedBaku()
-
-        // toast({
-        //   title: "成功！",
-        //   description: "バクが美味しそうに思い出を食べました！",
-        // })
-      } catch (error) {
-        // toast({
-        //   title: "エラー",
-        //   description: "アップロードに失敗しました",
-        //   variant: "destructive",
-        // })
-      } finally {
-        setIsUploading(false)
+      if (!publicUrlData) {
+        throw new Error("ファイルの公開URLの取得に失敗しました。")
       }
-    },
-    [feedBaku, addMemory],
-  )
+      const mediaUrl = publicUrlData.publicUrl
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      setIsDragging(false)
-
-      const file = e.dataTransfer.files[0]
-      if (file) {
-        handleFile(file)
+      // 3. データベースのmemoriesテーブルにレコードを挿入
+      const mediaType = file.type.startsWith("image/") ? "photo" : file.type.startsWith("video/") ? "video" : null
+      if (mediaType === null) {
+        throw new Error("対応していないファイル形式です。画像または動画を選択してください。")
       }
-    },
-    [handleFile],
-  )
 
-  const handleFileInput = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (file) {
-        handleFile(file)
+      const { error: insertError } = await supabase.from("memories").insert({
+        user_id: TEST_USER_ID,
+        memory_date: memoryDate,
+        text_content: textContent || null,
+        media_url: mediaUrl,
+        media_type: mediaType,
+      })
+
+      if (insertError) {
+        throw new Error(`データベースへの保存に失敗しました: ${insertError.message}`)
       }
-    },
-    [handleFile],
-  )
+
+      // 成功！
+      setMessage({ type: 'success', text: "思い出をバクに与えました！" })
+      // フォームをリセット
+      setMemoryDate(new Date().toISOString().split('T')[0])
+      setTextContent("")
+      setFile(null)
+      const fileInput = document.getElementById('file-upload') as HTMLInputElement
+      if(fileInput) fileInput.value = ""
+
+    } catch (error) {
+      const err = error as Error
+      setMessage({ type: 'error', text: err.message })
+    } finally {
+      setIsUploading(false)
+    }
+  }
 
   return (
-    <Card className="p-8">
-      <div
-        onDragOver={(e) => {
-          e.preventDefault()
-          setIsDragging(true)
-        }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={handleDrop}
-        className={`
-          border-2 border-dashed rounded-xl p-12 text-center transition-all
-          ${isDragging ? "border-primary bg-primary/5 scale-105" : "border-border bg-muted/30"}
-        `}
-      >
-        <div className="flex flex-col items-center gap-4">
-          <div className="rounded-full bg-primary/10 p-6">
-            <Camera className="h-12 w-12 text-primary" />
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-lg font-semibold text-foreground">写真をアップロード</p>
-            <p className="text-sm text-muted-foreground">ドラッグ＆ドロップまたはクリックして選択</p>
-          </div>
-
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileInput}
-            className="hidden"
-            id="file-upload"
+    <Card className="p-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="memory-date">思い出の日付</Label>
+          <Input
+            id="memory-date"
+            type="date"
+            value={memoryDate}
+            onChange={(e) => setMemoryDate(e.target.value)}
+            required
             disabled={isUploading}
           />
-
-          <Button asChild size="lg" className="mt-4" disabled={isUploading}>
-            <label htmlFor="file-upload" className="cursor-pointer">
-              <Upload className="h-4 w-4 mr-2" />
-              {isUploading ? "アップロード中..." : "ファイルを選択"}
-            </label>
-          </Button>
         </div>
-      </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="text-content">思い出の記録</Label>
+          <Textarea
+            id="text-content"
+            placeholder="楽しかったこと、感じたことなどを記録しよう"
+            value={textContent}
+            onChange={(e) => setTextContent(e.target.value)}
+            disabled={isUploading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="file-upload">思い出の写真</Label>
+          <div className="flex items-center space-x-4">
+             <Input
+                id="file-upload"
+                type="file"
+                accept="image/*,video/*"
+                onChange={handleFileChange}
+                className="flex-grow"
+                required
+                disabled={isUploading}
+              />
+          </div>
+          {file && <p className="text-sm text-muted-foreground mt-2">選択中のファイル: {file.name}</p>}
+        </div>
+        
+        {message && (
+          <Alert variant={message.type === 'error' ? "destructive" : "default"}>
+            {message.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+            <AlertTitle>{message.type === 'success' ? "成功" : "エラー"}</AlertTitle>
+            <AlertDescription>{message.text}</AlertDescription>
+          </Alert>
+        )}
+
+        <Button type="submit" className="w-full" disabled={isUploading}>
+          {isUploading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+              アップロード中...
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4 mr-2" />
+              この思い出をバクに与える
+            </>
+          )}
+        </Button>
+      </form>
     </Card>
   )
 }
