@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Calendar, AlertTriangle } from "lucide-react";
+import type { User } from "@supabase/supabase-js";
 
 // データベースのmemoriesテーブルの型を定義
 export type Memory = {
@@ -16,19 +17,23 @@ export type Memory = {
   user_id: string;
 };
 
-export function MemoriesTab() {
+export function MemoriesTab({ user }: { user: User }) {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
 
   useEffect(() => {
     const fetchMemories = async () => {
+      if (!user) return;
+
       setLoading(true);
       setError(null);
       try {
         const { data, error } = await supabase
           .from("memories")
           .select("*")
+          .eq("user_id", user.id) // ログインユーザーのIDで絞り込み
           .order("memory_date", { ascending: false });
 
         if (error) {
@@ -43,7 +48,7 @@ export function MemoriesTab() {
     };
 
     fetchMemories();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (

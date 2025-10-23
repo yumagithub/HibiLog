@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useBakuStore } from "@/lib/store";
 import { Bell, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { User } from "@supabase/supabase-js";
 
 const intervals = [
   { value: 3, label: "3時間おき" },
@@ -15,7 +16,7 @@ const intervals = [
   { value: 24, label: "24時間おき" },
 ];
 
-export function SettingsTab() {
+export function SettingsTab({ user }: { user: User }) {
   const {
     notificationsEnabled,
     notificationInterval,
