@@ -3,11 +3,17 @@ import { createClient } from "@/lib/supabase/client";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function LoginPage() {
   const supabase = createClient();
   const router = useRouter();
+  const [redirectUrl, setRedirectUrl] = useState<string>("");
+
+  useEffect(() => {
+    // クライアントサイドでのみwindowオブジェクトにアクセス
+    setRedirectUrl(`${window.location.origin}/auth/callback`);
+  }, []);
 
   useEffect(() => {
     const {
@@ -24,6 +30,15 @@ export default function LoginPage() {
     return () => subscription.unsubscribe();
   }, [supabase, router]);
 
+  // redirectUrlが設定されるまで待機
+  if (!redirectUrl) {
+    return (
+      <div className="min-h-screen flex items-center justify-center gradient-bg">
+        <p className="text-muted-foreground">読み込み中...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center gradient-bg">
       <div className="w-full max-w-md p-8 space-y-8">
@@ -39,7 +54,7 @@ export default function LoginPage() {
           supabaseClient={supabase}
           appearance={{ theme: ThemeSupa }}
           providers={["google"]}
-          redirectTo={`${window.location.origin}/auth/callback`}
+          redirectTo={redirectUrl}
           localization={{
             variables: {
               sign_in: {
