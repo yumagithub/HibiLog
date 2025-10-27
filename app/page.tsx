@@ -12,6 +12,7 @@ import { MemoriesTab } from "@/components/memories-tab";
 import { SettingsTab } from "@/components/settings-tab";
 import { BottomNav } from "@/components/bottom-nav";
 import { SidebarNav } from "@/components/sidebar-nav";
+import { HungerDebugPanel } from "@/components/hunger-debug-panel";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 
@@ -35,7 +36,12 @@ export default function HibiLogApp() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const updateHunger = useBakuStore((state) => state.updateHunger);
+  const feedBaku = useBakuStore((state) => state.feedBaku);
+  const setHunger = useBakuStore((state) => state.setHunger);
+  const setLastFed = useBakuStore((state) => state.setLastFed);
 
+  // 認証チェック
   useEffect(() => {
     const checkUser = async () => {
       const {
@@ -63,6 +69,86 @@ export default function HibiLogApp() {
 
     return () => subscription.unsubscribe();
   }, [supabase, router]);
+
+  // Supabaseからバクの状態を読み込む
+  useEffect(() => {
+    if (!user) return;
+
+    const loadBakuProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("baku_profiles")
+          .select("hunger_level, last_fed_at")
+          .eq("user_id", user.id)
+          .single();
+
+        if (error) {
+          if (error.code !== "PGRST116") {
+            // PGRST116 = 行が見つからない（正常系）
+            console.error("バクのプロフィール読み込みエラー:", error);
+          }
+          return;
+        }
+
+        if (data) {
+          // Supabaseのデータでストアを更新
+          if (data.hunger_level !== null && data.last_fed_at) {
+            setHunger?.(data.hunger_level);
+            setLastFed?.(data.last_fed_at);
+            // 現在時刻に基づいて空腹度を再計算
+            updateHunger();
+          }
+        }
+      } catch (error) {
+        console.error("バクのプロフィール読み込みエラー:", error);
+      }
+    };
+
+    loadBakuProfile();
+  }, [user, supabase, setHunger, setLastFed, updateHunger]);
+
+  // 空腹度の自動更新（1分ごと）
+  useEffect(() => {
+    // 初回実行
+    updateHunger();
+
+    // 1分ごとに更新
+    const interval = setInterval(() => {
+      updateHunger();
+    }, 60000); // 60秒 = 1分
+
+    return () => clearInterval(interval);
+  }, [updateHunger]);
+
+  // 空腹度に応じた通知
+  useEffect(() => {
+    const { hunger, notificationsEnabled, status } = useBakuStore.getState();
+
+    if (!notificationsEnabled || !user) return;
+
+    // 空腹度が25%以下（criticalまたはhungry）の場合に通知
+    if (hunger <= 25 && status === "critical") {
+      // ブラウザ通知の許可を確認
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("バクがお腹を空かせています！", {
+          body: "思い出を投稿してバクに食べさせてあげましょう。",
+          icon: "/baku.png",
+          badge: "/baku.png",
+        });
+      } else if (Notification.permission !== "denied") {
+        // 許可をリクエスト
+        Notification.requestPermission().then((permission) => {
+          if (permission === "granted") {
+            new Notification("バクがお腹を空かせています！", {
+              body: "思い出を投稿してバクに食べさせてあげましょう。",
+              icon: "/baku.png",
+              badge: "/baku.png",
+            });
+          }
+        });
+      }
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -120,6 +206,9 @@ export default function HibiLogApp() {
 
       {/* スマホ用ボトムナビゲーション */}
       <BottomNav />
+
+      {/* 開発用デバッグパネル（開発環境でのみ表示） */}
+      {process.env.NODE_ENV === "development" && <HungerDebugPanel />}
     </>
   );
 }
