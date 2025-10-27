@@ -91,7 +91,7 @@ export function MemoriesTab({ user }: { user: User }) {
       {memories.map((memory) => (
         <div
           key={memory.id}
-          className="clay-card rounded-lg group cursor-pointer transition-all duration-300 hover:-translate-y-1 relative overflow-hidden aspect-[4/3]"
+          className="clay-card rounded-lg group cursor-pointer transition-all duration-300 hover:-translate-y-1 relative overflow-hidden aspect-4/3"
         >
           {/* Background Image */}
           {memory.media_url && (

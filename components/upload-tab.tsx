@@ -208,7 +208,7 @@ export function UploadTab({ user }: { user: User }) {
               type="file"
               accept="image/*,video/*"
               onChange={handleFileChange}
-              className="flex-grow"
+              className="grow"
               required
               disabled={isUploading}
             />

@@ -38,7 +38,8 @@ export default function LoginPage() {
         <Auth
           supabaseClient={supabase}
           appearance={{ theme: ThemeSupa }}
-          providers={["google"]} // Googleログインを有効にする場合
+          providers={["google"]}
+          redirectTo={`${window.location.origin}/auth/callback`}
           localization={{
             variables: {
               sign_in: {

@@ -5,8 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useBakuStore } from "@/lib/store";
-import { Bell, Check } from "lucide-react";
+import { Bell, Check, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 
 const intervals = [
@@ -23,6 +24,7 @@ export function SettingsTab({ user }: { user: User }) {
     toggleNotifications,
     setNotificationInterval,
   } = useBakuStore();
+  const router = useRouter();
 
   return (
     <Card className="p-6 space-y-6">
@@ -84,6 +86,19 @@ export function SettingsTab({ user }: { user: User }) {
           </p>
         </div>
       </div>
+
+      {/* Account Link */}
+      {user && (
+        <div className="pt-4 border-t">
+          <Button
+            onClick={() => router.push("/account")}
+            className="w-full clay-button flex items-center justify-center gap-2"
+          >
+            <UserCircle className="h-5 w-5" />
+            アカウント情報
+          </Button>
+        </div>
+      )}
     </Card>
   );
 }
