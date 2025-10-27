@@ -9,12 +9,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Upload, Camera, Terminal, CheckCircle, XCircle } from "lucide-react";
+import { useBakuStore } from "@/lib/store";
 
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
 export function UploadTab({ user }: { user: User }) {
   const supabase = createClient();
+  const feedBaku = useBakuStore((state) => state.feedBaku);
   const [memoryDate, setMemoryDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -152,6 +154,9 @@ export function UploadTab({ user }: { user: User }) {
           (error as Error).message
         );
       }
+
+      // Zustandストアも更新してUIに反映
+      feedBaku();
 
       // 成功！
       setMessage({

@@ -25,6 +25,8 @@ interface BakuStore {
   feedBaku: () => void;
   addMemory: (memory: Memory) => void;
   updateHunger: () => void;
+  setHunger: (hunger: number) => void;
+  setLastFed: (lastFed: string) => void;
   toggleNotifications: () => void;
   setNotificationInterval: (interval: number) => void;
   setActiveView: (view: View) => void;
@@ -41,7 +43,7 @@ export const useBakuStore = create<BakuStore>()(
   persist(
     (set, get) => ({
       hunger: 100,
-      lastFed: null,
+      lastFed: new Date().toISOString(), // 初期値として現在時刻を設定
       status: "healthy",
       memories: [
         {
@@ -60,10 +62,12 @@ export const useBakuStore = create<BakuStore>()(
       activeView: "upload",
 
       feedBaku: () => {
+        const currentHunger = get().hunger;
+        const newHunger = Math.min(100, currentHunger + 25); // 25%回復、最大100%
         set({
-          hunger: 100,
+          hunger: newHunger,
           lastFed: new Date().toISOString(),
-          status: "healthy",
+          status: calculateStatus(newHunger),
         });
       },
 
@@ -86,6 +90,17 @@ export const useBakuStore = create<BakuStore>()(
           hunger: Math.round(newHunger),
           status: calculateStatus(newHunger),
         });
+      },
+
+      setHunger: (hunger) => {
+        set({
+          hunger,
+          status: calculateStatus(hunger),
+        });
+      },
+
+      setLastFed: (lastFed) => {
+        set({ lastFed });
       },
 
       toggleNotifications: () => {
