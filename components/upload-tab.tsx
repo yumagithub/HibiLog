@@ -17,6 +17,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useBakuStore } from "@/lib/store";
+import { MOOD_OPTIONS, type MoodOption } from "@/lib/mood-emojis";
 
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
@@ -28,6 +29,7 @@ export function UploadTab({ user }: { user: User }) {
     new Date().toISOString().split("T")[0]
   );
   const [textContent, setTextContent] = useState("");
+  const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<{
@@ -58,6 +60,10 @@ export function UploadTab({ user }: { user: User }) {
     }
     if (!memoryDate) {
       setMessage({ type: "error", text: "思い出の日付を入力してください。" });
+      return;
+    }
+    if (!selectedMood) {
+      setMessage({ type: "error", text: "感情を選択してください。" });
       return;
     }
 
@@ -109,6 +115,8 @@ export function UploadTab({ user }: { user: User }) {
         text_content: textContent || null,
         media_url: mediaUrl,
         media_type: mediaType,
+        mood_emoji: selectedMood.emoji,
+        mood_category: selectedMood.category,
       });
 
       if (insertError) {
@@ -270,6 +278,39 @@ export function UploadTab({ user }: { user: User }) {
             required
             disabled={isUploading}
           />
+        </div>
+
+        {/* 感情選択 */}
+        <div className="space-y-2">
+          <Label>
+            今日の気分<span className="text-destructive ml-1">*</span>
+          </Label>
+          <div className="grid grid-cols-4 gap-2">
+            {MOOD_OPTIONS.map((mood) => (
+              <Button
+                key={mood.emoji}
+                type="button"
+                variant={
+                  selectedMood?.emoji === mood.emoji ? "default" : "outline"
+                }
+                className={`h-auto py-4 flex flex-col items-center gap-1 transition-all ${
+                  selectedMood?.emoji === mood.emoji
+                    ? "scale-110 shadow-lg"
+                    : "hover:scale-105"
+                }`}
+                onClick={() => setSelectedMood(mood)}
+                disabled={isUploading}
+              >
+                <span className="text-3xl">{mood.emoji}</span>
+                <span className="text-xs">{mood.label}</span>
+              </Button>
+            ))}
+          </div>
+          {!selectedMood && (
+            <p className="text-xs text-muted-foreground">
+              気分を選択してください
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">

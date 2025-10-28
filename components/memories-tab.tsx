@@ -16,6 +16,8 @@ export type Memory = {
   media_url: string | null;
   media_type: "photo" | "video" | null;
   user_id: string;
+  mood_emoji: string | null;
+  mood_category: string | null;
 };
 
 export function MemoriesTab({ user }: { user: User }) {
@@ -116,6 +118,13 @@ export function MemoriesTab({ user }: { user: User }) {
                 alt={memory.text_content || "Memory"}
                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
               />
+            )}
+
+            {/* Mood Emoji Badge */}
+            {memory.mood_emoji && (
+              <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full w-10 h-10 flex items-center justify-center text-2xl shadow-md">
+                {memory.mood_emoji}
+              </div>
             )}
 
             {/* Full Card Overlay */}

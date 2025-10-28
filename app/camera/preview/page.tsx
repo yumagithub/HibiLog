@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ArrowLeft, Camera, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import { useBakuStore } from "@/lib/store";
+import { MOOD_OPTIONS, type MoodOption } from "@/lib/mood-emojis";
 
 export default function CameraPreviewPage() {
   const supabase = createClient();
@@ -25,6 +26,7 @@ export default function CameraPreviewPage() {
     new Date().toISOString().split("T")[0]
   );
   const [textContent, setTextContent] = useState("");
+  const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -63,6 +65,15 @@ export default function CameraPreviewPage() {
     e.preventDefault();
     if (!user || !imageUrl) return;
 
+    // 絵文字が選択されているか確認
+    if (!selectedMood) {
+      setMessage({
+        type: "error",
+        text: "感情を選択してください",
+      });
+      return;
+    }
+
     setIsUploading(true);
     setMessage(null);
 
@@ -100,13 +111,15 @@ export default function CameraPreviewPage() {
       }
       const mediaUrl = publicUrlData.publicUrl;
 
-      // 3. データベースのmemoriesテーブルにレコードを挿入
+      // 3. データベースのmemoriesテーブルにレコードを挿入（絵文字を含む）
       const { error: insertError } = await supabase.from("memories").insert({
         user_id: user.id,
         memory_date: memoryDate,
         text_content: textContent || null,
         media_url: mediaUrl,
         media_type: "photo",
+        mood_emoji: selectedMood.emoji,
+        mood_category: selectedMood.category,
       });
 
       if (insertError) {
@@ -235,6 +248,41 @@ export default function CameraPreviewPage() {
                   required
                   disabled={isUploading}
                 />
+              </div>
+
+              {/* 感情選択 */}
+              <div className="space-y-2">
+                <Label>
+                  今日の気分<span className="text-destructive ml-1">*</span>
+                </Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {MOOD_OPTIONS.map((mood) => (
+                    <Button
+                      key={mood.emoji}
+                      type="button"
+                      variant={
+                        selectedMood?.emoji === mood.emoji
+                          ? "default"
+                          : "outline"
+                      }
+                      className={`h-auto py-4 flex flex-col items-center gap-1 transition-all ${
+                        selectedMood?.emoji === mood.emoji
+                          ? "scale-110 shadow-lg"
+                          : "hover:scale-105"
+                      }`}
+                      onClick={() => setSelectedMood(mood)}
+                      disabled={isUploading}
+                    >
+                      <span className="text-3xl">{mood.emoji}</span>
+                      <span className="text-xs">{mood.label}</span>
+                    </Button>
+                  ))}
+                </div>
+                {!selectedMood && (
+                  <p className="text-xs text-muted-foreground">
+                    気分を選択してください
+                  </p>
+                )}
               </div>
 
               {/* メッセージ入力 */}

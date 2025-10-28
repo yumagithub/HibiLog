@@ -115,6 +115,16 @@ export function MemoryDetailModal({
 
           {/* 詳細情報エリア */}
           <div className="bg-white p-6 space-y-4 max-h-[40%] overflow-y-auto">
+            {/* 気分の絵文字 */}
+            {currentMemory.mood_emoji && (
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <span className="text-4xl">{currentMemory.mood_emoji}</span>
+                <div className="text-sm text-muted-foreground">
+                  この日の気分
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />
               <span>
