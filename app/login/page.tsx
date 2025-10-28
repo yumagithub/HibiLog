@@ -13,8 +13,9 @@ export default function LoginPage() {
   const [redirectUrl, setRedirectUrl] = useState<string>("");
 
   useEffect(() => {
-    // クライアントサイドでのみwindowオブジェクトにアクセス
-    setRedirectUrl(`${window.location.origin}/auth/callback`);
+    // 本番環境とローカル環境でリダイレクトURLを切り替え
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    setRedirectUrl(`${baseUrl}/auth/callback`);
   }, []);
 
   useEffect(() => {

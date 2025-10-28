@@ -137,9 +137,21 @@ yarn install
 `.env.local` ファイルを作成し、以下の環境変数を設定：
 
 ```env
+# Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Site URL (for authentication redirects)
+# Local: http://localhost:3000
+# Production: https://your-domain.vercel.app
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
+
+**本番環境（Vercel）の設定：**
+1. Vercel ダッシュボードで環境変数を設定
+2. `NEXT_PUBLIC_SITE_URL` を本番ドメイン（例：`https://your-app.vercel.app`）に設定
+3. Supabase ダッシュボードの Authentication > URL Configuration で Redirect URLs に本番ドメインを追加：
+   - `https://your-app.vercel.app/auth/callback`
 
 ### 4. Supabase プロジェクトのセットアップ
 
