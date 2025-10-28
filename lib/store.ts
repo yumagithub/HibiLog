@@ -59,7 +59,7 @@ export const useBakuStore = create<BakuStore>()(
       ],
       notificationsEnabled: false,
       notificationInterval: 6,
-      activeView: "upload",
+      activeView: "memories", // デフォルトは思い出タブ
 
       feedBaku: () => {
         const currentHunger = get().hunger;

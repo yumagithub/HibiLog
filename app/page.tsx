@@ -21,13 +21,14 @@ const CurrentView = ({ user }: { user: User }) => {
 
   switch (activeView) {
     case "upload":
-      return <UploadTab user={user} />;
+      // 投稿タブは/cameraページに遷移するため、ここには来ないはず
+      return <MemoriesTab user={user} />;
     case "memories":
       return <MemoriesTab user={user} />;
     case "settings":
       return <SettingsTab user={user} />;
     default:
-      return <UploadTab user={user} />;
+      return <MemoriesTab user={user} />;
   }
 };
 

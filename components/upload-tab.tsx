@@ -2,13 +2,20 @@
 
 import type React from "react";
 import { useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Upload, Camera, Terminal, CheckCircle, XCircle } from "lucide-react";
+import {
+  Upload,
+  Camera,
+  Image as ImageIcon,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import { useBakuStore } from "@/lib/store";
 
 import { createClient } from "@/lib/supabase/client";
@@ -183,9 +190,76 @@ export function UploadTab({ user }: { user: User }) {
     }
   };
 
+  // ギャラリーから選択していない場合は選択画面を表示
+  if (!file) {
+    return (
+      <Card className="p-6 space-y-6">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-bold">思い出を記録</h2>
+          <p className="text-sm text-muted-foreground">
+            写真をアップロードしてバクに思い出を与えよう
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="h-auto py-6 flex-col gap-3"
+          >
+            <Link href="/camera">
+              <Camera className="h-8 w-8" />
+              <span>カメラで撮影</span>
+            </Link>
+          </Button>
+
+          <Label
+            htmlFor="file-upload"
+            className="flex flex-col items-center gap-3 h-auto py-6 cursor-pointer border-2 border-dashed rounded-lg hover:bg-accent transition-colors"
+          >
+            <ImageIcon className="h-8 w-8 text-muted-foreground" />
+            <span className="text-sm font-medium">ギャラリーから選択</span>
+            <Input
+              id="file-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </Label>
+        </div>
+      </Card>
+    );
+  }
+
+  // ファイルが選択されている場合は編集・保存画面を表示
   return (
     <Card className="p-6">
       <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold">思い出を記録</h2>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setFile(null)}
+            disabled={isUploading}
+          >
+            キャンセル
+          </Button>
+        </div>
+
+        {file && file.type.startsWith("image/") && (
+          <div className="relative rounded-xl overflow-hidden bg-muted aspect-3/4">
+            <img
+              src={URL.createObjectURL(file)}
+              alt="選択した画像"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="memory-date">思い出の日付</Label>
           <Input
@@ -207,26 +281,6 @@ export function UploadTab({ user }: { user: User }) {
             onChange={(e) => setTextContent(e.target.value)}
             disabled={isUploading}
           />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="file-upload">思い出の写真</Label>
-          <div className="flex items-center space-x-4">
-            <Input
-              id="file-upload"
-              type="file"
-              accept="image/*,video/*"
-              onChange={handleFileChange}
-              className="grow"
-              required
-              disabled={isUploading}
-            />
-          </div>
-          {file && (
-            <p className="text-sm text-muted-foreground mt-2">
-              選択中のファイル: {file.name}
-            </p>
-          )}
         </div>
 
         {message && (

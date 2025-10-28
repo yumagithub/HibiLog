@@ -18,6 +18,12 @@ export function BottomNav() {
   const { activeView, setActiveView } = useBakuStore();
 
   const handleNavClick = (view: ActiveView) => {
+    // 投稿タブの場合は、カメラページに遷移
+    if (view === "upload") {
+      router.push("/camera");
+      return;
+    }
+
     // アカウントページなど、メインページ以外にいる場合はメインページに遷移
     if (pathname !== "/") {
       router.push("/");
