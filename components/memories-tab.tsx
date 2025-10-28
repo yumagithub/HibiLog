@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Calendar, AlertTriangle } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
+import { MemoryDetailModal } from "@/components/memory-detail-modal";
 
 // データベースのmemoriesテーブルの型を定義
 export type Memory = {
@@ -21,7 +22,20 @@ export function MemoriesTab({ user }: { user: User }) {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const supabase = createClient();
+
+  const handleMemoryClick = (memory: Memory) => {
+    setSelectedMemory(memory);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    // モーダルのアニメーション後にselectedMemoryをクリア
+    setTimeout(() => setSelectedMemory(null), 300);
+  };
 
   useEffect(() => {
     const fetchMemories = async () => {
@@ -87,38 +101,49 @@ export function MemoriesTab({ user }: { user: User }) {
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-      {memories.map((memory) => (
-        <div
-          key={memory.id}
-          className="clay-card rounded-lg group cursor-pointer transition-all duration-300 hover:-translate-y-1 relative overflow-hidden aspect-4/3"
-        >
-          {/* Background Image */}
-          {memory.media_url && (
-            <img
-              src={memory.media_url}
-              alt={memory.text_content || "Memory"}
-              className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-            />
-          )}
-
-          {/* Full Card Overlay */}
-          <div className="full-card-overlay">
-            {memory.text_content && (
-              <p className="line-clamp-2 font-semibold text-sm mb-1">
-                {memory.text_content}
-              </p>
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {memories.map((memory) => (
+          <div
+            key={memory.id}
+            onClick={() => handleMemoryClick(memory)}
+            className="clay-card rounded-lg group cursor-pointer transition-all duration-300 hover:-translate-y-1 relative overflow-hidden aspect-4/3"
+          >
+            {/* Background Image */}
+            {memory.media_url && (
+              <img
+                src={memory.media_url}
+                alt={memory.text_content || "Memory"}
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+              />
             )}
-            <p className="text-xs font-medium">
-              {new Date(memory.memory_date).toLocaleDateString("ja-JP", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })}
-            </p>
+
+            {/* Full Card Overlay */}
+            <div className="full-card-overlay">
+              {memory.text_content && (
+                <p className="line-clamp-2 font-semibold text-sm mb-1">
+                  {memory.text_content}
+                </p>
+              )}
+              <p className="text-xs font-medium">
+                {new Date(memory.memory_date).toLocaleDateString("ja-JP", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </p>
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      {/* 詳細モーダル */}
+      <MemoryDetailModal
+        memory={selectedMemory}
+        memories={memories}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
+    </>
   );
 }

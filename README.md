@@ -148,6 +148,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
 **本番環境（Vercel）の設定：**
+
 1. Vercel ダッシュボードで環境変数を設定
 2. `NEXT_PUBLIC_SITE_URL` を本番ドメイン（例：`https://your-app.vercel.app`）に設定
 3. Supabase ダッシュボードの Authentication > URL Configuration で Redirect URLs に本番ドメインを追加：
