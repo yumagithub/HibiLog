@@ -4,8 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useBakuStore } from "@/lib/store";
-import { Bell, Check, UserCircle } from "lucide-react";
+import { Bell, Check, UserCircle, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
@@ -26,8 +27,32 @@ export function SettingsTab({ user }: { user: User }) {
   } = useBakuStore();
   const router = useRouter();
 
+  // ユーザーが匿名（ゲスト）かどうか確認
+  const isAnonymous = user.is_anonymous || false;
+
   return (
     <Card className="p-6 space-y-6">
+      {/* ゲストユーザー向けアップグレード通知 */}
+      {isAnonymous && (
+        <Alert className="border-blue-200 bg-blue-50">
+          <UserPlus className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-sm text-blue-800">
+            <p className="font-medium mb-2">ゲストモードで利用中です</p>
+            <p className="text-xs mb-3">
+              アカウント登録すると、データを永続的に保存できます。
+            </p>
+            <Button
+              size="sm"
+              onClick={() => router.push("/login")}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <UserPlus className="h-3 w-3 mr-1" />
+              アカウント登録
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Notifications Toggle */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">

@@ -51,6 +51,30 @@ export default function HibiLogApp() {
         router.push("/login");
       } else {
         setUser(session.user);
+
+        // public.usersテーブルにユーザーが存在するか確認、なければ作成
+        const { data: existingUser, error: checkError } = await supabase
+          .from("users")
+          .select("id")
+          .eq("id", session.user.id)
+          .single();
+
+        if (checkError && checkError.code === "PGRST116") {
+          // ユーザーが存在しない場合、作成
+          const { error: insertError } = await supabase.from("users").insert({
+            id: session.user.id,
+            email: session.user.email,
+            is_anonymous: session.user.is_anonymous || false,
+            created_at: session.user.created_at,
+          });
+
+          if (insertError) {
+            console.error("ユーザー作成エラー:", insertError);
+          } else {
+            console.log("ユーザーレコードを作成しました");
+          }
+        }
+
         setLoading(false);
       }
     };
@@ -83,8 +107,45 @@ export default function HibiLogApp() {
           .single();
 
         if (error) {
-          if (error.code !== "PGRST116") {
-            // PGRST116 = 行が見つからない（正常系）
+          if (error.code === "PGRST116") {
+            // PGRST116 = 行が見つからない → 初回ログインなので作成
+            console.log("バクプロフィールが見つかりません。新規作成します...");
+
+            const now = new Date().toISOString();
+            const { data: insertData, error: insertError } = await supabase
+              .from("baku_profiles")
+              .insert({
+                user_id: user.id,
+                baku_color: "default", // デフォルトカラー
+                size: 1.0, // 初期サイズ
+                weight: 1.0, // 初期体重
+                hunger_level: 100,
+                last_fed_at: now,
+                notification_interval: "1-hour",
+              });
+
+            if (insertError) {
+              if (insertError.code === "23505") {
+                // 23505 = unique violation (既に存在する - 問題なし)
+                console.log("✅ バクプロフィールは既に存在します");
+              } else {
+                // 予期しないエラー
+                console.error("バクプロフィール作成エラー:", {
+                  code: insertError.code,
+                  message: insertError.message,
+                  details: insertError.details,
+                  hint: insertError.hint,
+                });
+              }
+            } else {
+              console.log("✅ バクプロフィールを作成しました:", insertData);
+            }
+
+            // どちらの場合も初期値でストアを更新
+            setHunger?.(100);
+            setLastFed?.(now);
+            updateHunger();
+          } else {
             console.error("バクのプロフィール読み込みエラー:", error);
           }
           return;

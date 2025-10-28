@@ -68,6 +68,7 @@ export function UploadTab({ user }: { user: User }) {
         .upload(filePath, file);
 
       if (uploadError) {
+        console.error("ストレージアップロードエラー:", uploadError);
         throw new Error(
           `ストレージへのアップロードに失敗しました: ${uploadError.message}`
         );
@@ -104,6 +105,9 @@ export function UploadTab({ user }: { user: User }) {
       });
 
       if (insertError) {
+        console.error("データベース挿入エラー:", insertError);
+        console.error("ユーザーID:", user.id);
+        console.error("認証状態:", await supabase.auth.getUser());
         throw new Error(
           `データベースへの保存に失敗しました: ${insertError.message}`
         );
