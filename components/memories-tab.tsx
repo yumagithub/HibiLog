@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Calendar, AlertTriangle } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { MemoryDetailModal } from "@/components/memory-detail-modal";
+import { motion } from "framer-motion";
 
 // データベースのmemoriesテーブルの型を定義
 export type Memory = {
@@ -26,6 +28,7 @@ export function MemoriesTab({ user }: { user: User }) {
   const [error, setError] = useState<string | null>(null);
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const supabase = createClient();
 
   const handleMemoryClick = (memory: Memory) => {
@@ -105,44 +108,110 @@ export function MemoriesTab({ user }: { user: User }) {
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {memories.map((memory) => (
-          <div
+        {memories.map((memory, index) => (
+          <motion.div
             key={memory.id}
             onClick={() => handleMemoryClick(memory)}
-            className="clay-card rounded-lg group cursor-pointer transition-all duration-300 hover:-translate-y-1 relative overflow-hidden aspect-4/3"
+            onMouseEnter={() => setHoveredId(memory.id)}
+            onMouseLeave={() => setHoveredId(null)}
+            className="clay-card rounded-lg group cursor-pointer relative overflow-hidden aspect-4/3"
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{
+              duration: 0.5,
+              delay: index * 0.1,
+              type: "spring",
+              stiffness: 100,
+              damping: 15,
+            }}
+            whileHover={{
+              y: -8,
+              scale: 1.02,
+              transition: { type: "spring", stiffness: 400, damping: 10 },
+            }}
+            whileTap={{ scale: 0.98 }}
+            layoutId={`memory-card-${memory.id}`}
           >
             {/* Background Image */}
             {memory.media_url && (
-              <img
+              <motion.img
                 src={memory.media_url}
                 alt={memory.text_content || "Memory"}
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                className="absolute inset-0 w-full h-full object-cover"
+                whileHover={{ scale: 1.1 }}
+                transition={{ duration: 0.3 }}
               />
             )}
 
             {/* Mood Emoji Badge */}
             {memory.mood_emoji && (
-              <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full w-10 h-10 flex items-center justify-center text-2xl shadow-md">
-                {memory.mood_emoji}
-              </div>
+              <motion.div
+                className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full w-10 h-10 flex items-center justify-center shadow-md"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{
+                  delay: index * 0.1 + 0.3,
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 10,
+                }}
+                whileHover={{
+                  scale: 1.2,
+                  rotate: 360,
+                  transition: { duration: 0.5 },
+                }}
+              >
+                {memory.mood_emoji.startsWith("/") ? (
+                  <Image
+                    src={memory.mood_emoji}
+                    alt="mood"
+                    width={32}
+                    height={32}
+                    className="w-8 h-8"
+                  />
+                ) : (
+                  <span className="text-2xl">{memory.mood_emoji}</span>
+                )}
+              </motion.div>
             )}
 
             {/* Full Card Overlay */}
-            <div className="full-card-overlay">
+            <motion.div
+              className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-transparent to-transparent p-3 text-white pointer-events-none"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: hoveredId === memory.id ? 1 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
               {memory.text_content && (
-                <p className="line-clamp-2 font-semibold text-sm mb-1">
+                <motion.p
+                  className="line-clamp-2 font-semibold text-sm mb-1"
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{
+                    y: hoveredId === memory.id ? 0 : 10,
+                    opacity: hoveredId === memory.id ? 1 : 0,
+                  }}
+                  transition={{ delay: 0.1 }}
+                >
                   {memory.text_content}
-                </p>
+                </motion.p>
               )}
-              <p className="text-xs font-medium">
+              <motion.p
+                className="text-xs font-medium"
+                initial={{ y: 10, opacity: 0 }}
+                animate={{
+                  y: hoveredId === memory.id ? 0 : 10,
+                  opacity: hoveredId === memory.id ? 1 : 0,
+                }}
+                transition={{ delay: 0.15 }}
+              >
                 {new Date(memory.memory_date).toLocaleDateString("ja-JP", {
                   year: "numeric",
                   month: "short",
                   day: "numeric",
                 })}
-              </p>
-            </div>
-          </div>
+              </motion.p>
+            </motion.div>
+          </motion.div>
         ))}
       </div>
 

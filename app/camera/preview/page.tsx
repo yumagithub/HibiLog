@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -14,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ArrowLeft, Camera, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import { useBakuStore } from "@/lib/store";
 import { MOOD_OPTIONS, type MoodOption } from "@/lib/mood-emojis";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function CameraPreviewPage() {
   const supabase = createClient();
@@ -256,27 +258,92 @@ export default function CameraPreviewPage() {
                   今日の気分<span className="text-destructive ml-1">*</span>
                 </Label>
                 <div className="grid grid-cols-4 gap-2">
-                  {MOOD_OPTIONS.map((mood) => (
-                    <Button
-                      key={mood.emoji}
-                      type="button"
-                      variant={
-                        selectedMood?.emoji === mood.emoji
-                          ? "default"
-                          : "outline"
-                      }
-                      className={`h-auto py-4 flex flex-col items-center gap-1 transition-all ${
-                        selectedMood?.emoji === mood.emoji
-                          ? "scale-110 shadow-lg"
-                          : "hover:scale-105"
-                      }`}
-                      onClick={() => setSelectedMood(mood)}
-                      disabled={isUploading}
-                    >
-                      <span className="text-3xl">{mood.emoji}</span>
-                      <span className="text-xs">{mood.label}</span>
-                    </Button>
-                  ))}
+                  {MOOD_OPTIONS.map((mood, index) => {
+                    const isSelected = selectedMood?.emoji === mood.emoji;
+                    return (
+                      <motion.div
+                        key={mood.emoji}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{
+                          delay: index * 0.05,
+                          type: "spring",
+                          stiffness: 200,
+                          damping: 15,
+                        }}
+                      >
+                        <Button
+                          type="button"
+                          variant={isSelected ? "default" : "outline"}
+                          className={`h-auto py-4 flex flex-col items-center gap-1 w-full relative overflow-hidden ${
+                            isSelected ? "shadow-lg" : ""
+                          }`}
+                          onClick={() => setSelectedMood(mood)}
+                          disabled={isUploading}
+                          asChild
+                        >
+                          <motion.button
+                            whileHover={{
+                              scale: 1.05,
+                              transition: { type: "spring", stiffness: 400 },
+                            }}
+                            whileTap={{ scale: 0.95 }}
+                            animate={
+                              isSelected
+                                ? {
+                                    scale: [1, 1.1, 1],
+                                    rotate: [0, 5, -5, 0],
+                                  }
+                                : {}
+                            }
+                            transition={{
+                              duration: 0.5,
+                              ease: "easeInOut",
+                            }}
+                          >
+                            <motion.span
+                              className="text-3xl flex items-center justify-center"
+                              animate={
+                                isSelected
+                                  ? {
+                                      scale: [1, 1.3, 1],
+                                      rotate: [0, 360],
+                                    }
+                                  : {}
+                              }
+                              transition={{
+                                duration: 0.6,
+                                ease: "easeOut",
+                              }}
+                            >
+                              <Image
+                                src={mood.emoji}
+                                alt={mood.label}
+                                width={48}
+                                height={48}
+                                className="w-12 h-12"
+                              />
+                            </motion.span>
+                            <span className="text-xs">{mood.label}</span>
+                            {isSelected && (
+                              <motion.div
+                                className="absolute inset-0 bg-primary/20 rounded-md"
+                                layoutId="selectedMoodBg"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{
+                                  type: "spring",
+                                  stiffness: 300,
+                                  damping: 30,
+                                }}
+                              />
+                            )}
+                          </motion.button>
+                        </Button>
+                      </motion.div>
+                    );
+                  })}
                 </div>
                 {!selectedMood && (
                   <p className="text-xs text-muted-foreground">

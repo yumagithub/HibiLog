@@ -31,9 +31,7 @@ export default function LoginPage() {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase, router]);
-
-  // redirectUrlが設定されるまで待機
+  }, [supabase, router]); // redirectUrlが設定されるまで待機
   if (!redirectUrl) {
     return (
       <div className="min-h-screen flex items-center justify-center gradient-bg">
@@ -53,11 +51,13 @@ export default function LoginPage() {
             ログインまたは新規登録
           </p>
         </div>
+
         <Auth
           supabaseClient={supabase}
           appearance={{ theme: ThemeSupa }}
           providers={["google"]}
           redirectTo={redirectUrl}
+          view="sign_in"
           localization={{
             variables: {
               sign_in: {

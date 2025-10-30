@@ -13,12 +13,12 @@ export interface MoodOption {
 }
 
 export const MOOD_OPTIONS: MoodOption[] = [
-  { emoji: "😊", label: "嬉しい", category: "positive" },
-  { emoji: "😆", label: "楽しい", category: "positive" },
-  { emoji: "😌", label: "穏やか", category: "calm" },
-  { emoji: "🤔", label: "考え中", category: "neutral" },
-  { emoji: "😢", label: "悲しい", category: "negative" },
-  { emoji: "😭", label: "号泣", category: "negative" },
-  { emoji: "😡", label: "怒り", category: "negative" },
-  { emoji: "😴", label: "疲れた", category: "tired" },
+  { emoji: "/laugh.png", label: "嬉しい", category: "positive" },
+  { emoji: "/heart.png", label: "愛してる", category: "positive" },
+  { emoji: "/like.png", label: "いいね", category: "calm" },
+  { emoji: "/fire.png", label: "燃える", category: "positive" },
+  { emoji: "/sad.png", label: "悲しい", category: "negative" },
+  { emoji: "/sweat.png", label: "疲れた", category: "tired" },
+  { emoji: "/Angry_Flat_Icon.png", label: "怒り", category: "negative" },
+  { emoji: "/shocked.png", label: "驚き", category: "neutral" },
 ];
