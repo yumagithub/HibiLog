@@ -163,8 +163,8 @@ export default function CameraPreviewPage() {
         );
       }
 
-      // Zustandストアも更新してUIに反映
-      feedBaku();
+      // Zustandストアも更新してUIに反映（ムードカテゴリーとテキストの有無を渡す）
+      feedBaku(selectedMood.category, !!textContent);
 
       // 成功！
       setMessage({

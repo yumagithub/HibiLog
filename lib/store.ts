@@ -22,7 +22,7 @@ interface BakuStore {
   notificationInterval: number;
   activeView: View;
 
-  feedBaku: () => void;
+  feedBaku: (moodCategory?: string, hasText?: boolean) => void;
   addMemory: (memory: Memory) => void;
   updateHunger: () => void;
   setHunger: (hunger: number) => void;
@@ -37,6 +37,31 @@ const calculateStatus = (hunger: number): BakuStatus => {
   if (hunger >= 50) return "normal";
   if (hunger >= 25) return "hungry";
   return "critical";
+};
+
+// 投稿の質による回復量を計算
+const calculateRecoveryAmount = (
+  moodCategory?: string,
+  hasText?: boolean
+): number => {
+  let recovery = 25; // 基本回復量（1枚で25%）
+
+  // ムードによる差はなくし、正直な感情入力を促進
+  // すべての感情で同じ回復量
+
+  // テキストありボーナス（振り返りを促進）
+  if (hasText) {
+    recovery += 5; // +5% → 合計30%
+  }
+
+  return recovery;
+};
+
+// 時間経過による満腹度減少を計算（24時間で40%減少）
+const calculateHungerDecrease = (hoursSinceLastFed: number): number => {
+  // 1時間あたり約1.67%減少（24時間で40%）
+  const decreasePerHour = 40 / 24;
+  return hoursSinceLastFed * decreasePerHour;
 };
 
 export const useBakuStore = create<BakuStore>()(
@@ -61,9 +86,11 @@ export const useBakuStore = create<BakuStore>()(
       notificationInterval: 6,
       activeView: "memories", // デフォルトは思い出タブ
 
-      feedBaku: () => {
+      feedBaku: (moodCategory?: string, hasText?: boolean) => {
         const currentHunger = get().hunger;
-        const newHunger = Math.min(100, currentHunger + 25); // 25%回復、最大100%
+        const recoveryAmount = calculateRecoveryAmount(moodCategory, hasText);
+        const newHunger = Math.min(100, currentHunger + recoveryAmount);
+
         set({
           hunger: newHunger,
           lastFed: new Date().toISOString(),
@@ -78,16 +105,23 @@ export const useBakuStore = create<BakuStore>()(
       },
 
       updateHunger: () => {
-        const { lastFed, notificationInterval } = get();
-        if (!lastFed) return;
+        const { lastFed } = get();
+        if (!lastFed) {
+          // lastFedがない場合は現在時刻を設定
+          set({ lastFed: new Date().toISOString() });
+          return;
+        }
 
-        const hoursSinceLastFed =
-          (Date.now() - new Date(lastFed).getTime()) / (1000 * 60 * 60);
-        const hungerDecrease = (hoursSinceLastFed / notificationInterval) * 100;
+        const now = Date.now();
+        const lastFedTime = new Date(lastFed).getTime();
+        const hoursSinceLastFed = (now - lastFedTime) / (1000 * 60 * 60);
+
+        // 24時間で25%減少
+        const hungerDecrease = calculateHungerDecrease(hoursSinceLastFed);
         const newHunger = Math.max(0, 100 - hungerDecrease);
 
         set({
-          hunger: Math.round(newHunger),
+          hunger: Math.round(newHunger * 10) / 10, // 小数点第1位まで
           status: calculateStatus(newHunger),
         });
       },

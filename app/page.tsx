@@ -42,6 +42,19 @@ export default function HibiLogApp() {
   const setHunger = useBakuStore((state) => state.setHunger);
   const setLastFed = useBakuStore((state) => state.setLastFed);
 
+  // 満腹度の自動更新
+  useEffect(() => {
+    // 初回ロード時に更新
+    updateHunger();
+
+    // 1分ごとに更新
+    const interval = setInterval(() => {
+      updateHunger();
+    }, 60 * 1000); // 60秒 = 1分
+
+    return () => clearInterval(interval);
+  }, [updateHunger]);
+
   // 認証チェック
   useEffect(() => {
     const checkUser = async () => {
