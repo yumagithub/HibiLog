@@ -131,7 +131,7 @@ export function BakuDisplay() {
       {/* Baku Character Card */}
       <Card className="relative overflow-hidden border-2 baku-glow">
         {/* Baku Character Area */}
-        <div className="aspect-square md:aspect-auto md:h-[40vh] relative flex items-center justify-center p-8 pb-60">
+        <div className="aspect-square md:aspect-auto md:h-[40vh] relative flex items-center justify-center p-8 pb-70">
           {/* Baku Character Illustration */}
           <motion.div
             className="relative group cursor-pointer"
