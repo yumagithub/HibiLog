@@ -6,6 +6,7 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
 import { useBakuStore } from "@/lib/store";
+import { calculateStreaks } from "@/lib/streak-calculator";
 import { BakuDisplay } from "@/components/baku-display";
 import { UploadTab } from "@/components/upload-tab";
 import { MemoriesTab } from "@/components/memories-tab";
@@ -14,6 +15,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { HungerDebugPanel } from "@/components/hunger-debug-panel";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { LogOut } from "lucide-react";
 
 const CurrentView = ({ user }: { user: User }) => {
@@ -37,6 +39,8 @@ export default function HibiLogApp() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [longestStreak, setLongestStreak] = useState(0);
   const updateHunger = useBakuStore((state) => state.updateHunger);
   const feedBaku = useBakuStore((state) => state.feedBaku);
   const setHunger = useBakuStore((state) => state.setHunger);
@@ -107,6 +111,47 @@ export default function HibiLogApp() {
 
     return () => subscription.unsubscribe();
   }, [supabase, router]);
+
+  // ストリークを計算
+  useEffect(() => {
+    if (!user) return;
+
+    const loadStreaks = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("memories")
+          .select("memory_date")
+          .eq("user_id", user.id)
+          .order("memory_date", { ascending: false });
+
+        if (error) {
+          console.error("メモリー取得エラー:", error);
+          return;
+        }
+
+        if (data) {
+          const memoryDates = data.map((m) => m.memory_date);
+          const streaks = calculateStreaks(memoryDates);
+          setCurrentStreak(streaks.currentStreak);
+          setLongestStreak(streaks.longestStreak);
+        }
+      } catch (error) {
+        console.error("ストリーク計算エラー:", error);
+      }
+    };
+
+    loadStreaks();
+
+    // 投稿後にストリークを再計算するためのイベントリスナー
+    const handleMemoryAdded = () => {
+      loadStreaks();
+    };
+    window.addEventListener("memoryAdded", handleMemoryAdded);
+
+    return () => {
+      window.removeEventListener("memoryAdded", handleMemoryAdded);
+    };
+  }, [user, supabase]);
 
   // Supabaseからバクの状態を読み込む
   useEffect(() => {
@@ -270,6 +315,33 @@ export default function HibiLogApp() {
 
             {/* Baku Character Display */}
             <BakuDisplay />
+
+            {/* ストリーク表示 */}
+            <Card className="mt-6 p-4">
+              <div className="flex items-center justify-around">
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <span className="text-2xl">🔥</span>
+                    <span className="text-3xl font-bold text-orange-500">
+                      {currentStreak}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">連続投稿</p>
+                </div>
+
+                <div className="h-12 w-px bg-border" />
+
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <span className="text-2xl">🏆</span>
+                    <span className="text-3xl font-bold text-yellow-600">
+                      {longestStreak}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">最長記録</p>
+                </div>
+              </div>
+            </Card>
 
             {/* Content Area */}
             <div className="mt-8">

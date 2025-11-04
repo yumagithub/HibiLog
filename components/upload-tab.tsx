@@ -179,6 +179,9 @@ export function UploadTab({ user }: { user: User }) {
       // Zustandストアも更新してUIに反映（ムードカテゴリーとテキストの有無を渡す）
       feedBaku(selectedMood.category, !!textContent);
 
+      // ストリーク再計算をトリガー
+      window.dispatchEvent(new Event("memoryAdded"));
+
       // 成功！
       setMessage({
         type: "success",
