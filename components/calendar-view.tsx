@@ -206,6 +206,40 @@ export function CalendarView({ memories, onDateClick }: CalendarViewProps) {
                       {day}
                     </div>
 
+                    {/* 絵文字バッジ（右上） */}
+                    {hasMemories && dayMemories[0].mood_emoji && (
+                      <motion.div
+                        className="absolute top-1 right-1 bg-white/90 backdrop-blur-sm rounded-full w-7 h-7 flex items-center justify-center shadow-md"
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{
+                          delay: index * 0.01 + 0.1,
+                          type: "spring",
+                          stiffness: 200,
+                          damping: 10,
+                        }}
+                        whileHover={{
+                          scale: 1.2,
+                          rotate: 15,
+                          transition: { duration: 0.2 },
+                        }}
+                      >
+                        {dayMemories[0].mood_emoji.startsWith("/") ? (
+                          <Image
+                            src={dayMemories[0].mood_emoji}
+                            alt="mood"
+                            width={20}
+                            height={20}
+                            className="object-contain"
+                          />
+                        ) : (
+                          <span className="text-sm">
+                            {dayMemories[0].mood_emoji}
+                          </span>
+                        )}
+                      </motion.div>
+                    )}
+
                     {/* 複数投稿インジケーター */}
                     {dayMemories.length > 1 && (
                       <div className="absolute bottom-1 right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg">

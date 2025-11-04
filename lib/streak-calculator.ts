@@ -58,29 +58,34 @@ export function calculateStreaks(memoryDates: string[]): {
   }
 
   // 最長ストリークを計算（全期間をスキャン）
-  tempStreak = 1;
-  longestStreak = 1;
+  if (sortedDates.length === 1) {
+    // 投稿が1つだけの場合
+    longestStreak = 1;
+  } else {
+    tempStreak = 1;
+    longestStreak = 1;
 
-  for (let i = 1; i < sortedDates.length; i++) {
-    const previousDate = new Date(sortedDates[i - 1]);
-    const currentDate = new Date(sortedDates[i]);
-    previousDate.setHours(0, 0, 0, 0);
-    currentDate.setHours(0, 0, 0, 0);
+    for (let i = 1; i < sortedDates.length; i++) {
+      const previousDate = new Date(sortedDates[i - 1]);
+      const currentDate = new Date(sortedDates[i]);
+      previousDate.setHours(0, 0, 0, 0);
+      currentDate.setHours(0, 0, 0, 0);
 
-    const diffDays = Math.floor(
-      (currentDate.getTime() - previousDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
+      const diffDays = Math.floor(
+        (currentDate.getTime() - previousDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
 
-    if (diffDays === 1) {
-      tempStreak++;
-      longestStreak = Math.max(longestStreak, tempStreak);
-    } else {
-      tempStreak = 1;
+      if (diffDays === 1) {
+        tempStreak++;
+        longestStreak = Math.max(longestStreak, tempStreak);
+      } else {
+        tempStreak = 1;
+      }
     }
   }
 
   return {
     currentStreak,
-    longestStreak: Math.max(longestStreak, currentStreak),
+    longestStreak,
   };
 }

@@ -21,8 +21,10 @@ export default function CameraPreviewPage() {
   const supabase = createClient();
   const router = useRouter();
   const feedBaku = useBakuStore((state) => state.feedBaku);
+  const addMemory = useBakuStore((state) => state.addMemory);
 
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [memoryDate, setMemoryDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -36,16 +38,13 @@ export default function CameraPreviewPage() {
   } | null>(null);
 
   useEffect(() => {
-    // 認証チェック
+    // 認証チェック（ゲストモードも許可）
     const checkUser = async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (!session) {
-        router.push("/login");
-      } else {
-        setUser(session.user);
-      }
+      setUser(session?.user || null);
+      setLoading(false);
     };
     checkUser();
 
@@ -56,7 +55,7 @@ export default function CameraPreviewPage() {
     } catch {
       setImageUrl(null);
     }
-  }, [supabase, router]);
+  }, [supabase]);
 
   const handleRetake = () => {
     sessionStorage.removeItem("camera:lastShot");
@@ -65,7 +64,7 @@ export default function CameraPreviewPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !imageUrl) return;
+    if (!imageUrl) return;
 
     // 絵文字が選択されているか確認
     if (!selectedMood) {
@@ -80,6 +79,42 @@ export default function CameraPreviewPage() {
     setMessage(null);
 
     try {
+      // ゲストモード: LocalStorageのみに保存
+      if (!user) {
+        // LocalStorageに保存
+        addMemory({
+          id: `guest-${Date.now()}`,
+          imageUrl,
+          timestamp: new Date().toISOString(),
+          moodEmoji: selectedMood.emoji,
+          moodCategory: selectedMood.category,
+          textContent: textContent || undefined,
+        });
+
+        // バクに食べさせる
+        feedBaku(selectedMood.category, !!textContent);
+
+        // ストリーク再計算をトリガー
+        window.dispatchEvent(new Event("memoryAdded"));
+
+        setMessage({
+          type: "success",
+          text: "思い出をバクに与えました！ バクが喜んでいます。",
+        });
+
+        // sessionStorageをクリア
+        sessionStorage.removeItem("camera:lastShot");
+
+        // 少し待ってからホームに戻る
+        setTimeout(() => {
+          router.push("/");
+        }, 1500);
+
+        setIsUploading(false);
+        return;
+      }
+
+      // ログインユーザー: Supabaseに保存
       // Data URLをBlobに変換
       const response = await fetch(imageUrl);
       const blob = await response.blob();
@@ -190,7 +225,7 @@ export default function CameraPreviewPage() {
     }
   };
 
-  if (!user) {
+  if (loading) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center">
         <p className="text-muted-foreground">読み込み中...</p>

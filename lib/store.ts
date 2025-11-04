@@ -7,6 +7,9 @@ interface Memory {
   id: string;
   imageUrl: string;
   timestamp: string;
+  moodEmoji?: string;
+  moodCategory?: string;
+  textContent?: string;
 }
 
 export type ActiveView = "upload" | "memories" | "settings";

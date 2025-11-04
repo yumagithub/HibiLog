@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
+import { useBakuStore } from "@/lib/store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, AlertTriangle, Grid3x3, CalendarDays } from "lucide-react";
@@ -24,7 +25,7 @@ export type Memory = {
   mood_category: string | null;
 };
 
-export function MemoriesTab({ user }: { user: User }) {
+export function MemoriesTab({ user }: { user: User | null }) {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +35,7 @@ export function MemoriesTab({ user }: { user: User }) {
   const [viewMode, setViewMode] = useState<"grid" | "calendar">("calendar");
   const [filteredMemories, setFilteredMemories] = useState<Memory[]>([]);
   const supabase = createClient();
+  const localMemories = useBakuStore((state) => state.memories);
 
   const handleMemoryClick = (memory: Memory) => {
     setSelectedMemory(memory);
@@ -57,15 +59,34 @@ export function MemoriesTab({ user }: { user: User }) {
 
   useEffect(() => {
     const fetchMemories = async () => {
-      if (!user) return;
-
       setLoading(true);
       setError(null);
+
       try {
+        if (!user) {
+          // ゲストモード: LocalStorageから取得
+          const localMems = localMemories.map((m) => ({
+            id: m.id,
+            memory_date: m.timestamp.split("T")[0], // ISO形式からYYYY-MM-DDを抽出
+            text_content: m.textContent || null,
+            created_at: m.timestamp,
+            updated_at: m.timestamp,
+            media_url: m.imageUrl,
+            media_type: "photo" as const,
+            user_id: "guest",
+            mood_emoji: m.moodEmoji || null,
+            mood_category: m.moodCategory || null,
+          }));
+          setMemories(localMems);
+          setLoading(false);
+          return;
+        }
+
+        // ログインユーザー: Supabaseから取得
         const { data, error } = await supabase
           .from("memories")
           .select("*")
-          .eq("user_id", user.id) // ログインユーザーのIDで絞り込み
+          .eq("user_id", user.id)
           .order("memory_date", { ascending: false });
 
         if (error) {
@@ -80,7 +101,7 @@ export function MemoriesTab({ user }: { user: User }) {
     };
 
     fetchMemories();
-  }, [user]);
+  }, [user, localMemories]);
 
   if (loading) {
     return (

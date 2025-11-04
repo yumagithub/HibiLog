@@ -24,9 +24,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
-export function UploadTab({ user }: { user: User }) {
+export function UploadTab({ user }: { user: User | null }) {
   const supabase = createClient();
   const feedBaku = useBakuStore((state) => state.feedBaku);
+  const addMemory = useBakuStore((state) => state.addMemory);
   const [memoryDate, setMemoryDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -49,13 +50,7 @@ export function UploadTab({ user }: { user: User }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      setMessage({
-        type: "error",
-        text: "ユーザー情報が取得できませんでした。",
-      });
-      return;
-    }
+
     if (!file) {
       setMessage({ type: "error", text: "思い出の画像を選択してください。" });
       return;
@@ -73,6 +68,51 @@ export function UploadTab({ user }: { user: User }) {
     setMessage(null);
 
     try {
+      // ゲストモード: LocalStorageのみに保存
+      if (!user) {
+        // 画像をBase64に変換
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const imageUrl = reader.result as string;
+
+          // LocalStorageに保存
+          addMemory({
+            id: `guest-${Date.now()}`,
+            imageUrl,
+            timestamp: new Date().toISOString(),
+            moodEmoji: selectedMood.emoji,
+            moodCategory: selectedMood.category,
+            textContent: textContent || undefined,
+          });
+
+          // バクに食べさせる
+          feedBaku(selectedMood.category, !!textContent);
+
+          // ストリーク再計算をトリガー
+          window.dispatchEvent(new Event("memoryAdded"));
+
+          setMessage({
+            type: "success",
+            text: "思い出をバクに与えました！ バクが喜んでいます。",
+          });
+
+          // フォームをリセット
+          setMemoryDate(new Date().toISOString().split("T")[0]);
+          setTextContent("");
+          setSelectedMood(null);
+          setFile(null);
+          const fileInput = document.getElementById(
+            "file-upload"
+          ) as HTMLInputElement;
+          if (fileInput) fileInput.value = "";
+
+          setIsUploading(false);
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      // ログインユーザー: Supabaseに保存
       // 1. ファイルをSupabase Storageにアップロード
       const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;

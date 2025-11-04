@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LogOut } from "lucide-react";
 
-const CurrentView = ({ user }: { user: User }) => {
+const CurrentView = ({ user }: { user: User | null }) => {
   const activeView = useBakuStore((state) => state.activeView);
 
   switch (activeView) {
@@ -45,6 +45,7 @@ export default function HibiLogApp() {
   const feedBaku = useBakuStore((state) => state.feedBaku);
   const setHunger = useBakuStore((state) => state.setHunger);
   const setLastFed = useBakuStore((state) => state.setLastFed);
+  const localMemories = useBakuStore((state) => state.memories);
 
   // 満腹度の自動更新
   useEffect(() => {
@@ -65,36 +66,41 @@ export default function HibiLogApp() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
+
       if (!session) {
-        router.push("/login");
-      } else {
-        setUser(session.user);
-
-        // public.usersテーブルにユーザーが存在するか確認、なければ作成
-        const { data: existingUser, error: checkError } = await supabase
-          .from("users")
-          .select("id")
-          .eq("id", session.user.id)
-          .single();
-
-        if (checkError && checkError.code === "PGRST116") {
-          // ユーザーが存在しない場合、作成
-          const { error: insertError } = await supabase.from("users").insert({
-            id: session.user.id,
-            email: session.user.email,
-            is_anonymous: session.user.is_anonymous || false,
-            created_at: session.user.created_at,
-          });
-
-          if (insertError) {
-            console.error("ユーザー作成エラー:", insertError);
-          } else {
-            console.log("ユーザーレコードを作成しました");
-          }
-        }
-
+        // セッションがない場合はゲストモードとして続行
+        setUser(null);
         setLoading(false);
+        return;
       }
+
+      // ログインユーザーの場合
+      setUser(session.user);
+
+      // public.usersテーブルにユーザーが存在するか確認、なければ作成
+      const { data: existingUser, error: checkError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("id", session.user.id)
+        .single();
+
+      if (checkError && checkError.code === "PGRST116") {
+        // ユーザーが存在しない場合、作成
+        const { error: insertError } = await supabase.from("users").insert({
+          id: session.user.id,
+          email: session.user.email,
+          is_anonymous: session.user.is_anonymous || false,
+          created_at: session.user.created_at,
+        });
+
+        if (insertError) {
+          console.error("ユーザー作成エラー:", insertError);
+        } else {
+          console.log("ユーザーレコードを作成しました");
+        }
+      }
+
+      setLoading(false);
     };
 
     checkUser();
@@ -114,27 +120,34 @@ export default function HibiLogApp() {
 
   // ストリークを計算
   useEffect(() => {
-    if (!user) return;
-
     const loadStreaks = async () => {
       try {
-        const { data, error } = await supabase
-          .from("memories")
-          .select("memory_date")
-          .eq("user_id", user.id)
-          .order("memory_date", { ascending: false });
+        let memoryDates: string[] = [];
 
-        if (error) {
-          console.error("メモリー取得エラー:", error);
-          return;
+        if (!user) {
+          // ゲストモード: LocalStorageから取得
+          memoryDates = localMemories.map((m) => m.timestamp.split("T")[0]);
+        } else {
+          // ログインユーザー: Supabaseから取得
+          const { data, error } = await supabase
+            .from("memories")
+            .select("memory_date")
+            .eq("user_id", user.id)
+            .order("memory_date", { ascending: false });
+
+          if (error) {
+            console.error("メモリー取得エラー:", error);
+            return;
+          }
+
+          if (data) {
+            memoryDates = data.map((m) => m.memory_date);
+          }
         }
 
-        if (data) {
-          const memoryDates = data.map((m) => m.memory_date);
-          const streaks = calculateStreaks(memoryDates);
-          setCurrentStreak(streaks.currentStreak);
-          setLongestStreak(streaks.longestStreak);
-        }
+        const streaks = calculateStreaks(memoryDates);
+        setCurrentStreak(streaks.currentStreak);
+        setLongestStreak(streaks.longestStreak);
       } catch (error) {
         console.error("ストリーク計算エラー:", error);
       }
@@ -151,7 +164,7 @@ export default function HibiLogApp() {
     return () => {
       window.removeEventListener("memoryAdded", handleMemoryAdded);
     };
-  }, [user, supabase]);
+  }, [user, supabase, localMemories]);
 
   // Supabaseからバクの状態を読み込む
   useEffect(() => {
@@ -271,7 +284,10 @@ export default function HibiLogApp() {
   }, [user]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    if (user) {
+      await supabase.auth.signOut();
+    }
+    router.push("/login");
   };
 
   if (loading) {
@@ -282,10 +298,7 @@ export default function HibiLogApp() {
     );
   }
 
-  if (!user) {
-    return null; // リダイレクトが実行されるまでの間、何も表示しない
-  }
-
+  // ゲストモードでも表示する（user が null でも OK）
   return (
     <>
       <div className="md:grid md:grid-cols-[240px_1fr]">
@@ -303,11 +316,17 @@ export default function HibiLogApp() {
               <p className="text-sm text-muted-foreground">
                 {"思い出を食べるバクを育てよう"}
               </p>
+              {!user && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  ゲストモード（データはこの端末のみ）
+                </p>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handleLogout}
                 className="absolute top-0 right-0"
+                title={user ? "ログアウト" : "ログイン"}
               >
                 <LogOut className="h-5 w-5" />
               </Button>

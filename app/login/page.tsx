@@ -100,7 +100,7 @@ export default function LoginPage() {
 
           <Button
             variant="outline"
-            onClick={() => router.push("/guest")}
+            onClick={() => router.push("/")}
             className="w-full clay-button"
           >
             <UserX className="h-4 w-4 mr-2" />
@@ -108,7 +108,7 @@ export default function LoginPage() {
           </Button>
 
           <p className="text-xs text-center text-muted-foreground">
-            ゲストモードはログイン不要ですぐに始められます
+            ゲストモードはログイン不要、データはこの端末に保存されます
           </p>
         </div>
       </div>

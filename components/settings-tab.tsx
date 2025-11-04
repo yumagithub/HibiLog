@@ -18,7 +18,7 @@ const intervals = [
   { value: 24, label: "24時間おき" },
 ];
 
-export function SettingsTab({ user }: { user: User }) {
+export function SettingsTab({ user }: { user: User | null }) {
   const {
     notificationsEnabled,
     notificationInterval,
@@ -27,19 +27,19 @@ export function SettingsTab({ user }: { user: User }) {
   } = useBakuStore();
   const router = useRouter();
 
-  // ユーザーが匿名（ゲスト）かどうか確認
-  const isAnonymous = user.is_anonymous || false;
+  // ユーザーがゲストモードかどうか確認
+  const isGuest = !user;
 
   return (
     <Card className="p-6 space-y-6">
       {/* ゲストユーザー向けアップグレード通知 */}
-      {isAnonymous && (
+      {isGuest && (
         <Alert className="border-blue-200 bg-blue-50">
           <UserPlus className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-sm text-blue-800">
             <p className="font-medium mb-2">ゲストモードで利用中です</p>
             <p className="text-xs mb-3">
-              アカウント登録すると、データを永続的に保存できます。
+              アカウント登録すると、データをクラウドに同期できます。
             </p>
             <Button
               size="sm"
@@ -47,7 +47,7 @@ export function SettingsTab({ user }: { user: User }) {
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <UserPlus className="h-3 w-3 mr-1" />
-              アカウント登録
+              アカウント登録して同期
             </Button>
           </AlertDescription>
         </Alert>
