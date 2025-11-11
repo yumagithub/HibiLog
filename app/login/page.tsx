@@ -54,7 +54,17 @@ export default function LoginPage() {
 
         <Auth
           supabaseClient={supabase}
-          appearance={{ theme: ThemeSupa }}
+          appearance={{ 
+            theme: ThemeSupa,
+            variables: {
+              default: {
+                colors: {
+                  inputBorder: "#000000",
+                  inputBackground: "#f9fafb",
+                },
+              },
+            },
+          }}
           providers={["google"]}
           redirectTo={redirectUrl}
           view="sign_in"
