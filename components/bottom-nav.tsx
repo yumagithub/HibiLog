@@ -4,13 +4,13 @@ import { useRouter, usePathname } from "next/navigation";
 import { useBakuStore, type ActiveView } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Upload, BookHeart, Settings } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-const navItems: { view: ActiveView; label: string; icon: React.ElementType }[] =
-  [
-    { view: "upload", label: "投稿", icon: Upload },
-    { view: "memories", label: "思い出", icon: BookHeart },
-    { view: "settings", label: "設定", icon: Settings },
-  ];
+const navItems: Array<{ view: ActiveView; label: string; icon: LucideIcon }> = [
+  { view: "upload", label: "投稿", icon: Upload },
+  { view: "memories", label: "思い出", icon: BookHeart },
+  { view: "settings", label: "設定", icon: Settings },
+];
 
 export function BottomNav() {
   const router = useRouter();
@@ -49,12 +49,14 @@ export function BottomNav() {
                   isActive && "clay-button -translate-y-1 scale-110"
                 )}
               >
-                <item.icon
-                  className={cn(
-                    "h-5 w-5 transition-colors",
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  )}
-                />
+                {
+                  <item.icon
+                    className={cn(
+                      "h-5 w-5 transition-colors",
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    )}
+                  />
+                }
               </div>
               <span className={cn(isActive && "text-primary font-semibold")}>
                 {item.label}
