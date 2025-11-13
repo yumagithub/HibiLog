@@ -305,10 +305,12 @@ export function UploadTab({ user }: { user: User | null }) {
 
         {file && file.type.startsWith("image/") && (
           <div className="relative rounded-xl overflow-hidden bg-muted aspect-3/4">
-            <img
+            <Image
               src={URL.createObjectURL(file)}
               alt="選択した画像"
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
         )}

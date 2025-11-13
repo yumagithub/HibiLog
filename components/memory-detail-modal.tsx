@@ -289,10 +289,12 @@ export function MemoryDetailModal({
                         transition={{ type: "spring", stiffness: 300 }}
                       >
                         {mem.media_url && (
-                          <img
+                          <Image
                             src={mem.media_url}
                             alt=""
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
+                            sizes="80px"
                           />
                         )}
                       </motion.button>
