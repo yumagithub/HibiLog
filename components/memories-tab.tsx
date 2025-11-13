@@ -244,7 +244,7 @@ export function MemoriesTab({ user }: { user: User | null }) {
 
               {/* Full Card Overlay */}
               <motion.div
-                className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-transparent to-transparent p-3 text-white pointer-events-none"
+                className="absolute inset-0 flex flex-col justify-end bg-linear-to-t from-black/70 via-transparent to-transparent p-3 text-white pointer-events-none"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: hoveredId === memory.id ? 1 : 0 }}
                 transition={{ duration: 0.3 }}
