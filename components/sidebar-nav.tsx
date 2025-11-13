@@ -5,7 +5,14 @@ import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useBakuStore, type ActiveView } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { Upload, BookHeart, Settings, Atom } from "lucide-react";
+import {
+  Upload,
+  BookHeart,
+  Settings,
+  Atom,
+  BarChart3,
+  User,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 // 3Dバクを動的インポート（モデル版）
@@ -28,6 +35,11 @@ const navItems: Array<{ view: ActiveView; label: string; icon: LucideIcon }> = [
   { view: "upload", label: "投稿する", icon: Upload },
   { view: "memories", label: "思い出を見る", icon: BookHeart },
   { view: "settings", label: "設定", icon: Settings },
+];
+
+const externalNavItems = [
+  { path: "/stats", label: "統計", icon: BarChart3 },
+  { path: "/account", label: "アカウント", icon: User },
 ];
 
 export function SidebarNav() {
@@ -92,6 +104,24 @@ export function SidebarNav() {
             <button
               key={item.view}
               onClick={() => handleNavClick(item.view)}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                isActive && "clay-button text-primary font-semibold"
+              )}
+            >
+              {<item.icon className="h-5 w-5" />}
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+
+        {/* 外部ページへのナビゲーション */}
+        {externalNavItems.map((item) => {
+          const isActive = pathname === item.path;
+          return (
+            <button
+              key={item.path}
+              onClick={() => router.push(item.path)}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
                 isActive && "clay-button text-primary font-semibold"

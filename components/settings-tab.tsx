@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useBakuStore } from "@/lib/store";
-import { Bell, Check, UserCircle, UserPlus } from "lucide-react";
+import { Bell, Check, UserCircle, UserPlus, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
@@ -114,7 +114,14 @@ export function SettingsTab({ user }: { user: User | null }) {
 
       {/* Account Link */}
       {user && (
-        <div className="pt-4 border-t">
+        <div className="pt-4 border-t space-y-3">
+          <Button
+            onClick={() => router.push("/stats")}
+            className="w-full clay-button flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white"
+          >
+            <BarChart3 className="h-5 w-5" />
+            統計情報を見る
+          </Button>
           <Button
             onClick={() => router.push("/account")}
             className="w-full clay-button flex items-center justify-center gap-2"
