@@ -269,10 +269,13 @@ export default function CameraPreviewPage() {
                   </Button>
                 </div>
                 <div className="relative rounded-xl overflow-hidden bg-muted aspect-3/4">
-                  <img
+                  <Image
                     src={imageUrl}
                     alt="撮影した写真"
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    priority
                   />
                 </div>
               </div>
