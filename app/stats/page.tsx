@@ -50,9 +50,11 @@ export default function StatsPage() {
         data: { session },
       } = await supabase.auth.getSession();
 
+      // ゲストモードの場合
       if (!session?.user) {
-        // ゲストモードの場合はホームに戻る
-        router.push("/");
+        // ゲストユーザーの統計を取得
+        await fetchGuestStats();
+        setLoading(false);
         return;
       }
 
@@ -62,6 +64,55 @@ export default function StatsPage() {
     };
     checkUser();
   }, [supabase, router]);
+
+  const fetchGuestStats = async () => {
+    try {
+      // 現在のセッションからゲストユーザーIDを取得
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      // セッションがない場合は空のデータ
+      if (!session?.user) {
+        console.log("セッションなし - 空の統計を表示");
+        setStats(calculateStats([]));
+        setMemories([]);
+        return;
+      }
+
+      // ゲストユーザーのデータを取得（user_idで検索）
+      const { data: memories, error } = await supabase
+        .from("memories")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .order("memory_date", { ascending: true });
+
+      if (error) {
+        console.error("Supabaseエラー:", error);
+        throw error;
+      }
+
+      console.log("取得したゲストメモリー:", memories);
+
+      if (!memories || memories.length === 0) {
+        console.log("ゲストのデータが0件です");
+        setStats(calculateStats([]));
+        setMemories([]);
+        return;
+      }
+
+      // 統計データを計算
+      const calculatedStats = calculateStats(memories as Memory[]);
+      setStats(calculatedStats);
+      setMemories(memories as Memory[]);
+    } catch (error) {
+      console.error("ゲスト統計データの取得エラー:", error);
+      console.error("エラー詳細:", JSON.stringify(error, null, 2));
+      // エラーが発生しても空のデータで統計を表示
+      setStats(calculateStats([]));
+      setMemories([]);
+    }
+  };
 
   const fetchStats = async (userId: string) => {
     try {
