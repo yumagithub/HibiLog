@@ -1,8 +1,6 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { Suspense } from "react";
-import dynamic from "next/dynamic";
 import { useBakuStore, type ActiveView } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import {
@@ -14,22 +12,6 @@ import {
   User,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-
-// 3Dバクを動的インポート（モデル版）
-const Baku3DMiniWithModel = dynamic(
-  () =>
-    import("./baku-3d-mini-with-model").then((mod) => ({
-      default: mod.Baku3DMiniWithModel,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-32 flex items-center justify-center bg-linear-to-b from-blue-50 to-purple-50 rounded-lg">
-        <p className="text-xs text-gray-400">読み込み中...</p>
-      </div>
-    ),
-  }
-);
 
 const navItems: Array<{ view: ActiveView; label: string; icon: LucideIcon }> = [
   { view: "upload", label: "投稿する", icon: Upload },
@@ -70,27 +52,16 @@ export function SidebarNav() {
         <h1 className="text-2xl font-bold text-foreground">HibiLog</h1>
       </div>
 
-      {/* 3Dバク表示 */}
+      {/* 空腹度表示 */}
       <div className="px-2 mb-2">
-        <Suspense
-          fallback={
-            <div className="w-full h-32 flex items-center justify-center bg-gradient-to-b from-blue-50 to-purple-50 rounded-lg">
-              <p className="text-xs text-gray-400">読み込み中...</p>
-            </div>
-          }
-        >
-          <Baku3DMiniWithModel />
-        </Suspense>
-
-        {/* 空腹度表示 */}
-        <div className="mt-2 space-y-1">
+        <div className="space-y-1">
           <div className="flex items-center justify-between text-xs text-gray-600">
             <span>満腹度</span>
             <span className="font-medium">{Math.round(hunger)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-1.5">
             <div
-              className="bg-gradient-to-r from-green-400 to-blue-500 h-1.5 rounded-full transition-all duration-500"
+              className="bg-linear-to-r from-green-400 to-blue-500 h-1.5 rounded-full transition-all duration-500"
               style={{ width: `${hunger}%` }}
             />
           </div>

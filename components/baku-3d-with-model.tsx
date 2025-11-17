@@ -15,7 +15,7 @@ function BakuModelFromFile({ status }: { status: string }) {
 
   // GLBファイルを読み込み
   // Baku Tapir LoDsモデルを使用
-  const { scene } = useGLTF("/models/Baku Tapir LoDs.glb");
+  const { scene } = useGLTF("/models/baku-model.glb");
 
   // アニメーション
   useFrame((state) => {
@@ -42,7 +42,7 @@ function BakuModelFromFile({ status }: { status: string }) {
   return (
     <Float speed={2} floatIntensity={0.5}>
       <group ref={groupRef}>
-        <primitive object={scene} scale={2} />
+        <primitive object={scene} scale={2} position={[0, -1, 0]} />
       </group>
     </Float>
   );
