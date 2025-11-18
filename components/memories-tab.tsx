@@ -26,6 +26,14 @@ import {
   PopoverContent,
 } from "@/components/ui/popover";
 
+// ★ ローカルタイム基準で YYYY-MM-DD 文字列を作るヘルパー
+function formatDateToYMD(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`; // "YYYY-MM-DD"
+}
+
 // Supabase memories テーブル型
 export type Memory = {
   id: string;
@@ -109,10 +117,10 @@ export function MemoriesTab({ user }: { user: User | null }) {
   const filteredForView =
     viewMode === "grid"
       ? memories.filter((memory) => {
-          // 日付フィルタ
+          // 日付フィルタ（ローカル基準で比較）
           if (selectedDate) {
-            const memDate = memory.memory_date.slice(0, 10);
-            const filterDate = selectedDate.toISOString().slice(0, 10);
+            const memDate = (memory.memory_date || "").slice(0, 10); // "YYYY-MM-DD"
+            const filterDate = formatDateToYMD(selectedDate);        // "YYYY-MM-DD"
             if (memDate !== filterDate) return false;
           }
           // 感情フィルタ
@@ -335,7 +343,7 @@ export function MemoriesTab({ user }: { user: User | null }) {
                     </motion.div>
                   )}
                   <motion.div
-                    className="absolute inset-0 bg-linear-to-t from-black/70 p-3 text-white flex flex-col justify-end"
+                    className="absolute inset-0 bg-gradient-to-t from-black/70 p-3 text-white flex flex-col justify-end"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: hoveredId === memory.id ? 1 : 0 }}
                   >
