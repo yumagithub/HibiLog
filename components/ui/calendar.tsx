@@ -20,16 +20,16 @@ export function Calendar({ className, ...props }: CalendarProps) {
         "[&_.rdp-head_cell]:text-[11px] [&_.rdp-head_cell]:font-normal",
         "[&_.rdp-day]:h-8 [&_.rdp-day]:w-8 [&_.rdp-day]:rounded-full",
 
-        // 선택된 날짜 색상
+        // 選択された日付の色
         "[&_.rdp-day_selected]:bg-primary [&_.rdp-day_selected]:text-primary-foreground",
 
-        // 오늘 날짜 강조 (여기 추가됨)
+        // 今日の日付を強調
         "[&_.rdp-day_today]:border [&_.rdp-day_today]:border-primary",
         "[&_.rdp-day_today]:bg-amber-200 [&_.rdp-day_today]:text-amber-900",
 
-        /* 주말 색상 설정 */
-        "[&_.rdp-day[data-weekday='6']]:text-blue-600", // 토요일
-        "[&_.rdp-day[data-weekday='0']]:text-red-600", // 일요일
+        /* 週末の文字色設定 */
+        "[&_.rdp-day[data-weekday='6']]:text-blue-600", // 土曜日
+        "[&_.rdp-day[data-weekday='0']]:text-red-600", // 日曜日
 
         className
       )}
