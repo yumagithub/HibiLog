@@ -20,7 +20,7 @@ const Baku3DWithModel = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-80 flex items-center justify-center bg-gradient-to-b from-blue-50 to-purple-50 rounded-xl">
+      <div className="w-full h-80 flex items-center justify-center bg-linear-to-b from-blue-50 to-purple-50 rounded-xl">
         <p className="text-sm text-gray-500">3Dモデルを読み込み中...</p>
       </div>
     ),
