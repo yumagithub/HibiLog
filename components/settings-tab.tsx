@@ -1,15 +1,28 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useBakuStore } from "@/lib/store";
-import { Bell, Check, UserCircle, UserPlus, BarChart3 } from "lucide-react";
+import {
+  Bell,
+  Check,
+  UserCircle,
+  UserPlus,
+  BarChart3,
+  AlertCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import {
+  subscribeUser,
+  unsubscribeUser,
+  sendNotification,
+} from "@/app/actions";
 
 const intervals = [
   { value: 3, label: "3時間おき" },
@@ -17,6 +30,18 @@ const intervals = [
   { value: 12, label: "12時間おき" },
   { value: 24, label: "24時間おき" },
 ];
+
+// VAPIDキーをUint8Arrayに変換するヘルパー関数
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 export function SettingsTab({ user }: { user: User | null }) {
   const {
@@ -27,7 +52,112 @@ export function SettingsTab({ user }: { user: User | null }) {
   } = useBakuStore();
   const router = useRouter();
 
-  // ユーザーがゲストモードかどうか確認
+  const [isPushSupported, setIsPushSupported] = useState(false);
+  const [subscription, setSubscription] = useState<PushSubscription | null>(
+    null
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  // 1. コンポーネントマウント時にPush APIのサポート状況と現在の購読状態を確認
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      "serviceWorker" in navigator &&
+      "PushManager" in window
+    ) {
+      setIsPushSupported(true);
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.pushManager.getSubscription().then((sub) => {
+          if (sub) {
+            setSubscription(sub);
+            // Zustandの状態と同期する
+            if (!notificationsEnabled) {
+              useBakuStore.getState().toggleNotifications();
+            }
+          }
+        });
+      });
+    }
+  }, []);
+
+  // 2. 通知の有効/無効が切り替わったときの処理
+  useEffect(() => {
+    if (!isPushSupported || !user) {
+      return;
+    }
+
+    if (notificationsEnabled) {
+      handleSubscribe();
+    } else {
+      handleUnsubscribe();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notificationsEnabled, isPushSupported, user]);
+
+  const handleSubscribe = async () => {
+    if (!user) return;
+    try {
+      // ブラウザの通知権限をリクエスト
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setError(
+          "通知権限が拒否されました。ブラウザの設定から通知を許可してください。"
+        );
+        useBakuStore.getState().toggleNotifications();
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      const sub = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(
+          process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
+        ),
+      });
+
+      await subscribeUser(sub.toJSON(), user.id);
+      setSubscription(sub);
+      setError(null);
+    } catch (err) {
+      console.error("Failed to subscribe:", err);
+      setError(
+        "通知の購読に失敗しました。ブラウザの通知設定を確認してください。"
+      );
+      // エラーが発生したらZustandの状態を元に戻す
+      useBakuStore.getState().toggleNotifications();
+    }
+  };
+
+  const handleUnsubscribe = async () => {
+    if (!subscription || !user) return;
+    try {
+      await subscription.unsubscribe();
+      await unsubscribeUser(user.id);
+      setSubscription(null);
+      setError(null);
+    } catch (err) {
+      console.error("Failed to unsubscribe:", err);
+      setError("通知の購読解除に失敗しました。");
+    }
+  };
+
+  const handleTestNotification = async () => {
+    if (!user) return;
+    try {
+      const result = await sendNotification(user.id, {
+        title: "テスト通知",
+        body: "バクがお腹を空かせています!🍽️",
+        icon: "/icon-192x192.png",
+      });
+      if (!result.success) {
+        setError("通知の送信に失敗しました: " + result.error);
+      }
+    } catch (err) {
+      console.error("Failed to send test notification:", err);
+      setError("通知の送信に失敗しました。");
+    }
+  };
+
   const isGuest = !user;
 
   return (
@@ -53,25 +183,50 @@ export function SettingsTab({ user }: { user: User | null }) {
         </Alert>
       )}
 
-      {/* Notifications Toggle */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <Label htmlFor="notifications" className="text-base font-medium">
-            通知
-          </Label>
-          <p className="text-sm text-muted-foreground">
-            バクが空腹になったら通知します
-          </p>
+      {/* Notifications Section */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <Label htmlFor="notifications" className="text-base font-medium">
+              プッシュ通知
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              バクが空腹になったら通知します
+            </p>
+          </div>
+          <Switch
+            id="notifications"
+            checked={notificationsEnabled}
+            onCheckedChange={toggleNotifications}
+            disabled={!isPushSupported || isGuest}
+          />
         </div>
-        <Switch
-          id="notifications"
-          checked={notificationsEnabled}
-          onCheckedChange={toggleNotifications}
-        />
+        {!isPushSupported && (
+          <Alert variant="destructive" className="text-xs">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              お使いのブラウザはプッシュ通知に対応していません。
+            </AlertDescription>
+          </Alert>
+        )}
+        {isGuest && notificationsEnabled && (
+          <Alert variant="destructive" className="text-xs">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              通知機能を利用するにはアカウント登録が必要です。
+            </AlertDescription>
+          </Alert>
+        )}
+        {error && (
+          <Alert variant="destructive" className="text-xs">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
       </div>
 
       {/* Notification Interval */}
-      {notificationsEnabled && (
+      {notificationsEnabled && !isGuest && (
         <div className="space-y-3 pt-4 border-t">
           <Label className="text-base font-medium">通知間隔</Label>
           <div className="grid grid-cols-2 gap-3">
@@ -99,6 +254,16 @@ export function SettingsTab({ user }: { user: User | null }) {
               );
             })}
           </div>
+
+          {/* Test Notification Button */}
+          <Button
+            onClick={handleTestNotification}
+            variant="outline"
+            className="w-full mt-3"
+          >
+            <Bell className="h-4 w-4 mr-2" />
+            テスト通知を送信
+          </Button>
         </div>
       )}
 
