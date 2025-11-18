@@ -80,51 +80,58 @@ export function SettingsTab({ user }: { user: User | null }) {
     }
   }, []);
 
-  // 2. 通知の有効/無効が切り替わったときの処理
-  useEffect(() => {
-    if (!isPushSupported || !user) {
-      return;
-    }
+  // 通知トグルのハンドラー
+  const handleNotificationToggle = async () => {
+    if (!isPushSupported || !user) return;
 
-    if (notificationsEnabled) {
-      handleSubscribe();
+    if (!notificationsEnabled) {
+      // オンにする場合：購読処理を実行
+      await handleSubscribe();
     } else {
-      handleUnsubscribe();
+      // オフにする場合：購読解除を実行
+      await handleUnsubscribe();
+      // Zustandの状態を更新
+      toggleNotifications();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notificationsEnabled, isPushSupported, user]);
+  };
 
   const handleSubscribe = async () => {
     if (!user) return;
     try {
+      // VAPID公開鍵の確認
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) {
+        setError(
+          "通知機能の設定が完了していません。管理者にお問い合わせください。"
+        );
+        return;
+      }
+
       // ブラウザの通知権限をリクエスト
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
         setError(
           "通知権限が拒否されました。ブラウザの設定から通知を許可してください。"
         );
-        useBakuStore.getState().toggleNotifications();
         return;
       }
 
       const registration = await navigator.serviceWorker.ready;
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(
-          process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-        ),
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
       });
 
       await subscribeUser(sub.toJSON(), user.id);
       setSubscription(sub);
       setError(null);
+      // 成功したらZustandの状態を更新
+      toggleNotifications();
     } catch (err) {
       console.error("Failed to subscribe:", err);
       setError(
         "通知の購読に失敗しました。ブラウザの通知設定を確認してください。"
       );
-      // エラーが発生したらZustandの状態を元に戻す
-      useBakuStore.getState().toggleNotifications();
     }
   };
 
@@ -197,7 +204,7 @@ export function SettingsTab({ user }: { user: User | null }) {
           <Switch
             id="notifications"
             checked={notificationsEnabled}
-            onCheckedChange={toggleNotifications}
+            onCheckedChange={handleNotificationToggle}
             disabled={!isPushSupported || isGuest}
           />
         </div>
