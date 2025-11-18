@@ -6,33 +6,49 @@ import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { cn } from "@/lib/utils";
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
-  className?: string;
-};
+export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
-export function Calendar({ className, ...props }: CalendarProps) {
+export function Calendar({
+  className,
+  classNames,
+  modifiers,
+  modifiersStyles,
+  ...props
+}: CalendarProps) {
   return (
     <DayPicker
       showOutsideDays
-      className={cn(
-        "p-2 text-sm",
-        "[&_.rdp-caption_label]:font-medium",
-        "[&_.rdp-head_cell]:text-[11px] [&_.rdp-head_cell]:font-normal",
-        "[&_.rdp-day]:h-8 [&_.rdp-day]:w-8 [&_.rdp-day]:rounded-full",
-
-        // 選択された日付の色
-        "[&_.rdp-day_selected]:bg-primary [&_.rdp-day_selected]:text-primary-foreground",
-
-        // 今日の日付を強調
-        "[&_.rdp-day_today]:border [&_.rdp-day_today]:border-primary",
-        "[&_.rdp-day_today]:bg-amber-200 [&_.rdp-day_today]:text-amber-900",
-
-        /* 週末の文字色設定 */
-        "[&_.rdp-day[data-weekday='6']]:text-blue-600", // 土曜日
-        "[&_.rdp-day[data-weekday='0']]:text-red-600", // 日曜日
-
-        className
-      )}
+      // ✅ dayOfWeek を使って土曜・日曜を判定
+      modifiers={{
+        saturday: { dayOfWeek: [6] }, // 土曜日
+        sunday: { dayOfWeek: [0] },   // 日曜日
+        ...(modifiers || {}),
+      }}
+      className={cn("p-2 text-sm", className)}
+      classNames={{
+        caption_label: cn("font-medium", classNames?.caption_label),
+        head_cell: cn("text-[11px] font-normal", classNames?.head_cell),
+        day: cn("h-8 w-8 rounded-full", classNames?.day),
+        ...classNames,
+      }}
+      // ✅ weekend / today の色を modifiersStyles で指定
+      modifiersStyles={{
+        ...modifiersStyles,
+        today: {
+          ...(modifiersStyles?.today || {}),
+          backgroundColor: "rgb(254 243 199)", // amber-200
+          color: "rgb(120 53 15)",            // amber-900
+          borderRadius: "9999px",
+        },
+        saturday: {
+          ...(modifiersStyles?.saturday || {}),
+          color: "rgb(37 99 235)",            // blue-600
+        },
+        sunday: {
+          ...(modifiersStyles?.sunday || {}),
+          color: "rgb(220 38 38)",            // red-600
+        },
+      }}
       {...props}
     />
   );
