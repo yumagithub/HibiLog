@@ -191,7 +191,7 @@ export default function StatsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen bg-linear-to-b from-blue-50 via-purple-50 to-pink-50">
       {/* ヘッダー */}
       <header className="bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
@@ -410,7 +410,7 @@ export default function StatsPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              <Card className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200">
+              <Card className="p-4 bg-linear-to-r from-blue-50 to-purple-50 border-2 border-blue-200">
                 <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
                   💡 インサイト
                 </h2>

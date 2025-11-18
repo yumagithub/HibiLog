@@ -144,9 +144,7 @@ export function MemoriesTab({ user }: { user: User | null }) {
   };
 
   if (loading)
-    return (
-      <Card className="p-12 text-center clay-input">読み込み中...</Card>
-    );
+    return <Card className="p-12 text-center clay-input">読み込み中...</Card>;
 
   if (error)
     return (
@@ -337,7 +335,7 @@ export function MemoriesTab({ user }: { user: User | null }) {
                     </motion.div>
                   )}
                   <motion.div
-                    className="absolute inset-0 bg-gradient-to-t from-black/70 p-3 text-white flex flex-col justify-end"
+                    className="absolute inset-0 bg-linear-to-t from-black/70 p-3 text-white flex flex-col justify-end"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: hoveredId === memory.id ? 1 : 0 }}
                   >
