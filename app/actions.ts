@@ -1,6 +1,7 @@
 "use server";
 
 import webpush from "web-push";
+import { createClient } from "@/lib/supabase/server";
 
 // VAPIDキーを設定
 webpush.setVapidDetails(
@@ -9,9 +10,7 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 );
 
-// 本番環境ではデータベースに保存することを強く推奨します。
-// この例では、サーバーのメモリ上に一時的に購読情報を保持します。
-let subscriptions = new Map<string, PushSubscriptionJSON>();
+const TABLE_NAME = "push_subscriptions";
 
 /**
  * ユーザーのプッシュ通知購読を保存します。
@@ -19,9 +18,25 @@ let subscriptions = new Map<string, PushSubscriptionJSON>();
  * @param userId ユーザーID
  */
 export async function subscribeUser(sub: PushSubscriptionJSON, userId: string) {
-  // TODO: 本番環境では、この情報をデータベースに永続化してください。
-  // 例: await db.subscriptions.create({ userId, subscription: sub });
-  subscriptions.set(userId, sub);
+  const supabase = await createClient();
+
+  const endpoint = sub.endpoint ?? "";
+  if (!endpoint) return { success: false, error: "Invalid endpoint" };
+
+  const { error } = await supabase.from(TABLE_NAME).upsert(
+    {
+      user_id: userId,
+      endpoint: endpoint,
+      subscription: sub,
+    },
+    { onConflict: "endpoint" }
+  );
+
+  if (error) {
+    console.error("Failed to save subscription", error);
+    return { success: false, error: error.message };
+  }
+
   return { success: true };
 }
 
@@ -29,10 +44,19 @@ export async function subscribeUser(sub: PushSubscriptionJSON, userId: string) {
  * ユーザーのプッシュ通知購読を解除します。
  * @param userId ユーザーID
  */
-export async function unsubscribeUser(userId: string) {
-  // TODO: 本番環境では、データベースから対応する購読情報を削除してください。
-  // 例: await db.subscriptions.delete({ where: { userId } });
-  subscriptions.delete(userId);
+export async function unsubscribeUser(endpoint: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from(TABLE_NAME)
+    .delete()
+    .eq("endpoint", endpoint);
+
+  if (error) {
+    console.error("Failed to delete subscription", error);
+    return { success: false, error: error.message };
+  }
+
   return { success: true };
 }
 
@@ -45,28 +69,44 @@ export async function sendNotification(
   userId: string,
   payload: { title: string; body: string; icon?: string }
 ) {
-  // TODO: 本番環境では、データベースからユーザーの購読情報を取得してください。
-  // const sub = await db.subscriptions.findUnique({ where: { userId } });
-  const sub = subscriptions.get(userId);
+  const supabase = await createClient();
 
-  if (!sub) {
+  const { data, error } = await supabase
+    .from(TABLE_NAME)
+    .select("subscription")
+    .eq("user_id", userId);
+
+  if (error || !data || data.length === 0) {
+    console.error("Subscription not found", error);
     return { success: false, error: "Subscription not found" };
   }
 
-  try {
-    await webpush.sendNotification(
-      sub as webpush.PushSubscription,
-      JSON.stringify(payload)
-    );
-    return { success: true };
-  } catch (error) {
-    // 購読が無効または期限切れの場合(410 Gone)、購読情報を削除します。
-    if (
-      error instanceof webpush.WebPushError &&
-      (error.statusCode === 410 || error.statusCode === 404)
-    ) {
-      await unsubscribeUser(userId);
+  const notificationPromises = data.map(async (row) => {
+    const subscription = row.subscription as webpush.PushSubscription;
+
+    try {
+      await webpush.sendNotification(subscription, JSON.stringify(payload));
+      return { success: true };
+    } catch (error) {
+      // 購読が無効または期限切れの場合(410 Gone)、購読情報を削除します。
+      if (
+        error instanceof webpush.WebPushError &&
+        (error.statusCode === 410 || error.statusCode === 404)
+      ) {
+        console.warn(`Stale subscription deleted: ${subscription.endpoint}`);
+        await supabase
+          .from(TABLE_NAME)
+          .delete()
+          .eq("endpoint", subscription.endpoint);
+      }
+      return { success: false, error: "Push failed" };
     }
-    return { success: false, error: "Failed to send notification" };
-  }
+  });
+
+  await Promise.allSettled(notificationPromises);
+
+  return {
+    success: true,
+    message: `Attempted to send ${data.length} notifications.`,
+  };
 }
