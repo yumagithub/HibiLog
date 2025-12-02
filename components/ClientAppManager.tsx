@@ -33,7 +33,7 @@ const CurrentView = ({ user }: { user: User | null }) => {
   }
 };
 
-export default function HibiLogApp() {
+export default function ClientAppManager() {
   // 認証フックからユーザー情報を取得
   const { user, loading, handleLogout } = useAuthSession();
 
