@@ -5,19 +5,21 @@ import { corsHeaders } from "../_shared/cors.ts";
 import type { BakuProfile, PushSubscription } from "../_shared/types.ts";
 
 const HUNGER_THRESHOLD = 25;
-// 48時間で100%減少するレート (1時間あたり)
-const HUNGER_DECREASE_RATE = 100 / 48;
+// 24時間で40%減少するレート (1時間あたり約1.67%)
+// クライアント側の実装と一致させる
+const HUNGER_DECREASE_RATE = 40 / 24;
 
 // VAPIDキーは環境変数から読み込む
 const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY")!;
 const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY")!;
+const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") || "admin@hibilog.app";
 
 if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
   console.error("VAPID keys are not set in environment variables.");
 }
 
 webpush.setVapidDetails(
-  "mailto:your-email@example.com", // あとでユーザーに設定を促す
+  `mailto:${ADMIN_EMAIL}`,
   VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY
 );
@@ -43,23 +45,44 @@ serve(async (req) => {
 
     const profilesToUpdate: Partial<BakuProfile>[] = [];
     const notificationsToSend: Promise<any>[] = [];
+    let updatedCount = 0;
+    let notificationsSent = 0;
+
+    console.log(`Processing ${profiles?.length || 0} profiles...`);
 
     for (const profile of profiles as BakuProfile[]) {
       const now = Date.now();
       const lastFedTime = new Date(profile.last_fed_at).getTime();
       const hoursSinceLastFed = (now - lastFedTime) / (1000 * 60 * 60);
 
-      // 2. 新しい空腹度を計算
+      // 2. 新しい空腹度を計算（現在の値から減少させる）
       const hungerDecrease = hoursSinceLastFed * HUNGER_DECREASE_RATE;
-      const newHunger = Math.max(0, 100 - hungerDecrease);
+      const calculatedHunger = Math.max(0, 100 - hungerDecrease);
 
-      profilesToUpdate.push({
-        user_id: profile.user_id,
-        hunger_level: newHunger,
-      });
+      // 前回の値よりも減少した場合のみ更新
+      const newHunger = Math.min(profile.hunger_level, calculatedHunger);
 
-      // 3. 通知が必要か判断
-      if (profile.hunger_level > HUNGER_THRESHOLD && newHunger <= HUNGER_THRESHOLD) {
+      if (newHunger !== profile.hunger_level) {
+        profilesToUpdate.push({
+          user_id: profile.user_id,
+          hunger_level: newHunger,
+        });
+        updatedCount++;
+
+        console.log(
+          `User ${profile.user_id}: ${profile.hunger_level.toFixed(
+            1
+          )}% -> ${newHunger.toFixed(1)}% (${hoursSinceLastFed.toFixed(
+            1
+          )}h since last fed)`
+        );
+      }
+
+      // 3. 通知が必要か判断（閾値を超えて下回った場合）
+      if (
+        profile.hunger_level > HUNGER_THRESHOLD &&
+        newHunger <= HUNGER_THRESHOLD
+      ) {
         // 4. Push購読情報を取得
         const { data: subscription, error: subError } = await supabaseAdmin
           .from("push_subscriptions")
@@ -76,14 +99,22 @@ serve(async (req) => {
         const payload = JSON.stringify({
           title: "バクがお腹を空かせています！",
           body: "思い出を投稿してバクに食べさせてあげましょう。",
-          icon: "/baku.png",
+          icon: "/icon-192x192.png",
         });
 
-        const pushPromise = webpush.sendNotification(
-          subscription as PushSubscription,
-          payload
-        ).catch(err => console.error(`Failed to send notification to user ${profile.user_id}:`, err));
-        
+        const pushPromise = webpush
+          .sendNotification(subscription as PushSubscription, payload)
+          .then(() => {
+            notificationsSent++;
+            console.log(`Notification sent to user ${profile.user_id}`);
+          })
+          .catch((err) => {
+            console.error(
+              `Failed to send notification to user ${profile.user_id}:`,
+              err
+            );
+          });
+
         notificationsToSend.push(pushPromise);
       }
     }
@@ -99,14 +130,32 @@ serve(async (req) => {
     // 7. 全ての通知送信を待つ
     await Promise.all(notificationsToSend);
 
-    return new Response(JSON.stringify({ message: "Hunger check complete." }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    console.log(
+      `Hunger check complete: ${updatedCount} profiles updated, ${notificationsSent} notifications sent.`
+    );
+
+    return new Response(
+      JSON.stringify({
+        message: "Hunger check complete.",
+        profilesProcessed: profiles?.length || 0,
+        profilesUpdated: updatedCount,
+        notificationsSent: notificationsSent,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      }
+    );
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    console.error("Error in hunger check:", error);
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Unknown error",
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      }
+    );
   }
 });
