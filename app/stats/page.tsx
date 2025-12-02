@@ -15,6 +15,8 @@ import {
   Cell,
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -43,6 +45,13 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<StatsData | null>(null);
   const [memories, setMemories] = useState<Memory[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}`;
+  });
 
   useEffect(() => {
     const checkUser = async () => {
@@ -101,12 +110,31 @@ export default function StatsPage() {
         return;
       }
 
+      // 感情スコアの平均を計算
+      const emotionScores = memories
+        .map((m: any) => m.emotion_score)
+        .filter(
+          (score): score is number => score !== null && score !== undefined
+        );
+      const avgEmotionScore =
+        emotionScores.length > 0
+          ? emotionScores.reduce((sum, score) => sum + score, 0) /
+            emotionScores.length
+          : null;
+
       // 統計データを計算
       const calculatedStats = calculateStats(memories as Memory[]);
-      setStats(calculatedStats);
+      setStats({ ...calculatedStats, avgEmotionScore } as any);
       setMemories(memories as Memory[]);
+      console.log("ユーザー統計: メモリーデータ", memories.length, "件");
+      console.log(
+        "最初の3件:",
+        memories
+          .slice(0, 3)
+          .map((m: any) => ({ date: m.memory_date, text: m.text_content }))
+      );
     } catch (error) {
-      console.error("ゲスト統計データの取得エラー:", error);
+      console.error("統計データの取得エラー:", error);
       console.error("エラー詳細:", JSON.stringify(error, null, 2));
       // エラーが発生しても空のデータで統計を表示
       setStats(calculateStats([]));
@@ -131,10 +159,29 @@ export default function StatsPage() {
         return;
       }
 
+      // 感情スコアの平均を計算
+      const emotionScores = memories
+        .map((m: any) => m.emotion_score)
+        .filter(
+          (score): score is number => score !== null && score !== undefined
+        );
+      const avgEmotionScore =
+        emotionScores.length > 0
+          ? emotionScores.reduce((sum, score) => sum + score, 0) /
+            emotionScores.length
+          : null;
+
       // 統計データを計算
       const calculatedStats = calculateStats(memories as Memory[]);
-      setStats(calculatedStats);
+      setStats({ ...calculatedStats, avgEmotionScore } as any);
       setMemories(memories as Memory[]);
+      console.log("ユーザー統計: メモリーデータ", memories.length, "件");
+      console.log(
+        "最初の3件:",
+        memories
+          .slice(0, 3)
+          .map((m: any) => ({ date: m.memory_date, text: m.text_content }))
+      );
     } catch (error) {
       console.error("統計データの取得エラー:", error);
       setStats(calculateStats([]));
@@ -224,7 +271,7 @@ export default function StatsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-3"
+              className="grid grid-cols-2 md:grid-cols-5 gap-3"
             >
               {/* 総思い出数 */}
               <Card className="p-4 text-center space-y-1 bg-white/80 backdrop-blur-sm">
@@ -261,6 +308,18 @@ export default function StatsPage() {
                 <div className="text-xs text-gray-600">最長記録</div>
                 <Heart className="h-5 w-5 mx-auto text-pink-400" />
               </Card>
+
+              {/* 感情スコア平均 */}
+              {(stats as any).avgEmotionScore !== null &&
+                (stats as any).avgEmotionScore !== undefined && (
+                  <Card className="p-4 text-center space-y-1 bg-white/80 backdrop-blur-sm">
+                    <div className="text-3xl font-bold text-green-600">
+                      {((stats as any).avgEmotionScore as number).toFixed(1)}
+                    </div>
+                    <div className="text-xs text-gray-600">感情スコア平均</div>
+                    <TrendingUp className="h-5 w-5 mx-auto text-green-400" />
+                  </Card>
+                )}
             </motion.div>
 
             {/* 月別投稿数 */}
@@ -320,6 +379,143 @@ export default function StatsPage() {
                 )}
               </Card>
             </motion.div>
+
+            {/* 感情スコアの推移 */}
+            {memories.some(
+              (m: any) =>
+                m.emotion_score !== null && m.emotion_score !== undefined
+            ) && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              >
+                <Card className="p-4 bg-white/80 backdrop-blur-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-bold flex items-center gap-2">
+                      📈 感情スコアの推移
+                    </h2>
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                      className="text-sm border rounded-lg px-3 py-1 bg-white"
+                    >
+                      {(() => {
+                        const months = new Set<string>();
+                        memories.forEach((m: any) => {
+                          if (
+                            m.emotion_score !== null &&
+                            m.emotion_score !== undefined
+                          ) {
+                            const date = new Date(m.memory_date);
+                            const monthKey = `${date.getFullYear()}-${String(
+                              date.getMonth() + 1
+                            ).padStart(2, "0")}`;
+                            months.add(monthKey);
+                          }
+                        });
+                        return Array.from(months)
+                          .sort()
+                          .reverse()
+                          .map((month) => {
+                            const [year, m] = month.split("-");
+                            return (
+                              <option key={month} value={month}>
+                                {year}年{m}月
+                              </option>
+                            );
+                          });
+                      })()}
+                    </select>
+                  </div>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <LineChart
+                      data={(() => {
+                        // 選択された月のデータをフィルタ
+                        const filteredMemories = memories.filter((m: any) => {
+                          if (
+                            m.emotion_score === null ||
+                            m.emotion_score === undefined
+                          )
+                            return false;
+                          const date = new Date(m.memory_date);
+                          const monthKey = `${date.getFullYear()}-${String(
+                            date.getMonth() + 1
+                          ).padStart(2, "0")}`;
+                          return monthKey === selectedMonth;
+                        });
+
+                        // 日付ごとにグループ化して平均を計算
+                        const dailyScores: { [key: string]: number[] } = {};
+                        filteredMemories.forEach((m: any) => {
+                          const dateKey = m.memory_date;
+                          if (!dailyScores[dateKey]) {
+                            dailyScores[dateKey] = [];
+                          }
+                          dailyScores[dateKey].push(m.emotion_score);
+                        });
+
+                        // 平均を計算してソート
+                        return Object.entries(dailyScores)
+                          .map(([date, scores]) => ({
+                            date: new Date(date).toLocaleDateString("ja-JP", {
+                              month: "short",
+                              day: "numeric",
+                            }),
+                            fullDate: date,
+                            score:
+                              scores.reduce((sum, s) => sum + s, 0) /
+                              scores.length,
+                            count: scores.length,
+                          }))
+                          .sort((a, b) => a.fullDate.localeCompare(b.fullDate));
+                      })()}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 11 }}
+                        stroke="#6b7280"
+                      />
+                      <YAxis
+                        domain={[0, 100]}
+                        tick={{ fontSize: 12 }}
+                        stroke="#6b7280"
+                      />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-white/95 border border-gray-200 rounded-lg p-2 shadow-lg">
+                                <p className="text-xs font-semibold">
+                                  {data.date}
+                                </p>
+                                <p className="text-xs text-green-600">
+                                  平均スコア: {data.score.toFixed(1)}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  投稿数: {data.count}件
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="score"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        dot={{ fill: "#10b981", r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Card>
+              </motion.div>
+            )}
           </div>
 
           {/* 右カラム（1/3幅） */}
