@@ -31,7 +31,7 @@ self.addEventListener('push', function (event) {
         primaryKey: '2',
       },
     };
-    
+        
     console.log('Showing notification with options:', options);
     event.waitUntil(
       self.registration.showNotification(data.title, options)
