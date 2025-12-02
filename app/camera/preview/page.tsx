@@ -148,7 +148,37 @@ export default function CameraPreviewPage() {
       }
       const mediaUrl = publicUrlData.publicUrl;
 
-      // 3. データベースのmemoriesテーブルにレコードを挿入（絵文字を含む）
+      // 3. 感情分析APIを呼び出し
+      let emotionScore: number | null = null;
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000); // 2秒タイムアウト
+
+        const emotionResponse = await fetch(
+          "https://api.hyunwoo-api.com/emotion",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              emoji: selectedMood.label,
+              sample: textContent || selectedMood.label,
+            }),
+            signal: controller.signal,
+          }
+        );
+        clearTimeout(timeoutId);
+
+        const emotionData = await emotionResponse.json();
+        emotionScore = emotionData.combined_score_100;
+        console.log("Emotion score from API:", emotionScore);
+      } catch (error) {
+        console.warn("Failed to analyze emotion, using default score:", error);
+        // APIが応答しない場合はデフォルトスコアを使用
+        emotionScore = selectedMood.defaultScore;
+        console.log("Using default emotion score:", emotionScore);
+      }
+
+      // 4. データベースのmemoriesテーブルにレコードを挿入（絵文字と感情スコアを含む）
       const { error: insertError } = await supabase.from("memories").insert({
         user_id: user.id,
         memory_date: memoryDate,
@@ -157,6 +187,7 @@ export default function CameraPreviewPage() {
         media_type: "photo",
         mood_emoji: selectedMood.emoji,
         mood_category: selectedMood.category,
+        emotion_score: emotionScore,
       });
 
       if (insertError) {
