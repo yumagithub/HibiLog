@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import webpush from "https://deno.land/x/web_push@0.2.2/mod.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import type { BakuProfile, PushSubscription } from "../_shared/types.ts";
 
@@ -18,11 +17,45 @@ if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
   console.error("VAPID keys are not set in environment variables.");
 }
 
-webpush.setVapidDetails(
-  `mailto:${ADMIN_EMAIL}`,
-  VAPID_PUBLIC_KEY,
-  VAPID_PRIVATE_KEY
-);
+// Web Push用のヘルパー関数
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function sendWebPush(
+  subscription: PushSubscription,
+  payload: string
+): Promise<boolean> {
+  try {
+    const response = await fetch(subscription.endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        TTL: "86400",
+      },
+      body: JSON.stringify({
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: subscription.p256dh,
+          auth: subscription.auth,
+        },
+        payload: payload,
+      }),
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error("Failed to send push notification:", error);
+    return false;
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -102,11 +135,19 @@ serve(async (req) => {
           icon: "/icon-192x192.png",
         });
 
-        const pushPromise = webpush
-          .sendNotification(subscription as PushSubscription, payload)
-          .then(() => {
-            notificationsSent++;
-            console.log(`Notification sent to user ${profile.user_id}`);
+        const pushPromise = sendWebPush(
+          subscription as PushSubscription,
+          payload
+        )
+          .then((success) => {
+            if (success) {
+              notificationsSent++;
+              console.log(`Notification sent to user ${profile.user_id}`);
+            } else {
+              console.error(
+                `Failed to send notification to user ${profile.user_id}`
+              );
+            }
           })
           .catch((err) => {
             console.error(
