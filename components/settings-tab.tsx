@@ -60,14 +60,18 @@ export function SettingsTab({ user }: { user: User | null }) {
 
   // 1. コンポーネントマウント時にPush APIのサポート状況と現在の購読状態を確認
   useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      "serviceWorker" in navigator &&
-      "PushManager" in window
-    ) {
-      setIsPushSupported(true);
-      navigator.serviceWorker.ready.then((reg) => {
-        reg.pushManager.getSubscription().then((sub) => {
+    async function checkPushSupport() {
+      if (
+        typeof window !== "undefined" &&
+        "serviceWorker" in navigator &&
+        "PushManager" in window
+      ) {
+        setIsPushSupported(true);
+
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          const sub = await registration.pushManager.getSubscription();
+
           if (sub) {
             setSubscription(sub);
             // Zustandの状態と同期する
@@ -75,10 +79,14 @@ export function SettingsTab({ user }: { user: User | null }) {
               useBakuStore.getState().toggleNotifications();
             }
           }
-        });
-      });
+        } catch (error) {
+          console.error("Failed to check push subscription:", error);
+        }
+      }
     }
-  }, []);
+
+    checkPushSupport();
+  }, [notificationsEnabled]);
 
   // 通知トグルのハンドラー
   const handleNotificationToggle = async () => {
@@ -116,17 +124,31 @@ export function SettingsTab({ user }: { user: User | null }) {
         return;
       }
 
+      // Service Workerの準備を待つ
       const registration = await navigator.serviceWorker.ready;
+
+      // 既存の購読を確認
+      const existingSub = await registration.pushManager.getSubscription();
+      if (existingSub) {
+        console.log("Already subscribed, using existing subscription");
+        setSubscription(existingSub);
+        await subscribeUser(existingSub.toJSON(), user.id);
+        toggleNotifications();
+        return;
+      }
+
+      // 新規購読
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
       });
 
-      await subscribeUser(sub.toJSON(), user.id);
+      const serializedSub = JSON.parse(JSON.stringify(sub));
+      await subscribeUser(serializedSub, user.id);
       setSubscription(sub);
       setError(null);
-      // 成功したらZustandの状態を更新
       toggleNotifications();
+      console.log("Successfully subscribed to push notifications");
     } catch (err) {
       console.error("Failed to subscribe:", err);
       setError(

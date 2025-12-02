@@ -2,7 +2,19 @@
 // Push notification handler
 self.addEventListener('push', function (event) {
   if (event.data) {
-    const data = event.data.json()
+    let data;
+    try {
+      // JSONとしてパース
+      data = event.data.json();
+    } catch (e) {
+      // JSONでない場合はプレーンテキストとして扱う
+      const text = event.data.text();
+      data = {
+        title: 'HibiLog',
+        body: text,
+      };
+    }
+    
     const options = {
       body: data.body,
       icon: data.icon || '/icon-192x192.png',
@@ -12,8 +24,8 @@ self.addEventListener('push', function (event) {
         dateOfArrival: Date.now(),
         primaryKey: '2',
       },
-    }
-    event.waitUntil(self.registration.showNotification(data.title, options))
+    };
+    event.waitUntil(self.registration.showNotification(data.title, options));
   }
 })
 
