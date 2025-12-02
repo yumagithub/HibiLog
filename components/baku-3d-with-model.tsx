@@ -4,47 +4,75 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Float, OrbitControls, Environment, useGLTF } from "@react-three/drei";
-import { useRef } from "react";
+import {
+  Float,
+  OrbitControls,
+  Environment,
+  useGLTF,
+  useAnimations,
+} from "@react-three/drei";
+import { useRef, useEffect, useState } from "react";
 import { useBakuStore } from "@/lib/store";
 import type { Group } from "three";
+import { GLBAnimationChecker } from "./glb-animation-checker";
 
 // 3Dモデルを読み込むコンポーネント
 function BakuModelFromFile({ status }: { status: string }) {
   const groupRef = useRef<Group>(null);
 
-  // GLBファイルを読み込み
-  // Baku Tapir LoDsモデルを使用
-  const { scene } = useGLTF("/models/baku-model.glb");
+  // アニメーション管理用のステート
+  const [currentAction, setCurrentAction] = useState("stand"); // 初期状態は"stand"
+  const [isWalking, setIsWalking] = useState(false); // 歩行中かどうかのフラグ
 
-  // アニメーション
-  useFrame((state) => {
-    if (!groupRef.current) return;
-    const time = state.clock.elapsedTime;
+  // GLBファイルを読み込み、アニメーションを取得
+  const { scene, animations } = useGLTF("/models/baku-model1118.glb");
+  const { actions, mixer } = useAnimations(animations, groupRef);
 
-    switch (status) {
-      case "healthy":
-        groupRef.current.rotation.y = time * 0.5;
-        groupRef.current.position.y = Math.sin(time * 2) * 0.2;
-        break;
-      case "normal":
-        groupRef.current.rotation.y = time * 0.3;
-        break;
-      case "hungry":
-        groupRef.current.position.x = Math.sin(time * 8) * 0.05;
-        break;
-      case "critical":
-        groupRef.current.rotation.z = Math.sin(time * 2) * 0.1;
-        break;
+  // アニメーションの切り替えとクロスフェード処理
+  useEffect(() => {
+    const action = actions[currentAction];
+    if (action && mixer) {
+      mixer.stopAllAction();
+      action.reset().fadeIn(0.5).play();
     }
+    return () => {
+      action?.fadeOut(0.5);
+    };
+  }, [currentAction, actions, mixer]);
+
+  // ランダムな待機、歩行ロジック
+  useEffect(() => {
+    if (status !== "healthy") {
+      setCurrentAction("stand");
+      setIsWalking(false);
+      return;
+    }
+
+    let intervalId: number;
+    const startRandomMovement = () => {
+      intervalId = window.setInterval(() => {
+        const nextAction = Math.random() < 0.6 ? "walk" : "stand";
+        setCurrentAction(nextAction);
+        setIsWalking(nextAction === "walk");
+      }, Math.random() * 2000 + 1000);
+    };
+
+    startRandomMovement();
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [status]);
+
+  // アニメーションミキサーの更新のみ
+  useFrame((state) => {
+    mixer.update(state.clock.getDelta());
   });
 
   return (
-    <Float speed={2} floatIntensity={0.5}>
-      <group ref={groupRef}>
-        <primitive object={scene} scale={2} position={[0, -1, 0]} />
-      </group>
-    </Float>
+    <group ref={groupRef}>
+      <primitive object={scene} scale={2} position={[0, -1.5, 0]} />
+    </group>
   );
 }
 
@@ -53,6 +81,9 @@ export function Baku3DWithModel() {
 
   return (
     <div className="w-full h-80 rounded-xl overflow-hidden bg-linear-to-b from-blue-50 to-purple-50 relative">
+      {/* デバッグ用：開発環境でのみアニメーション情報を出力 */}
+      {process.env.NODE_ENV === "development" && <GLBAnimationChecker />}
+
       <Canvas camera={{ position: [0, 1, 15], fov: 45 }} shadows>
         <ambientLight intensity={0.4} />
         <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
@@ -101,4 +132,4 @@ export function Baku3DWithModel() {
 }
 
 // GLTFファイルをプリロード（パフォーマンス向上）
-useGLTF.preload("/models/Baku Tapir LoDs.glb");
+useGLTF.preload("/models/baku-model1118.glb");
