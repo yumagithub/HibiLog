@@ -101,12 +101,6 @@ export async function sendNotification(
     ) {
       await unsubscribeUser(userId);
     }
-  });
-
-  await Promise.allSettled(notificationPromises);
-
-  return {
-    success: true,
-    message: `Attempted to send ${data.length} notifications.`,
-  };
+    return { success: false, error: "Failed to send notification" };
+  }
 }
