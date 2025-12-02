@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import withPWA from "next-pwa";
 
 const nextConfig: NextConfig = {
   images: {
@@ -12,20 +11,46 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async headers() {
+    return [
+      {
+        // グローバルセキュリティヘッダー（全ルート適用）
+        source: "/(.*)",
+        headers: [
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+        ],
+      },
+      {
+        // Service Worker専用ヘッダー
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Content-Type",
+            value: "application/javascript; charset=utf-8",
+          },
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+          {
+            key: "Content-Security-Policy",
+            value: "default-src 'self'; script-src 'self'",
+          },
+        ],
+      },
+    ];
+  },
 };
 
-const pwaConfig = withPWA({
-  dest: "public",
-  disable: process.env.NODE_ENV === "development", // 開発環境では無効化
-  register: true,
-  skipWaiting: true,
-  swSrc: "public/service-worker.js",
-  buildExcludes: [
-    /middleware-manifest\.json$/,
-    /middleware-build-manifest\.json$/,
-  ],
-  cacheOnFrontEndNav: true,
-  reloadOnOnline: true,
-});
-
-export default pwaConfig(nextConfig);
+export default nextConfig;
