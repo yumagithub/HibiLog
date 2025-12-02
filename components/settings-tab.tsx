@@ -23,6 +23,7 @@ import {
   unsubscribeUser,
   sendNotification,
 } from "@/app/actions";
+import { createClient } from "@/lib/supabase/client";
 
 const intervals = [
   { value: 3, label: "3時間おき" },
@@ -57,6 +58,7 @@ export function SettingsTab({ user }: { user: User | null }) {
     null
   );
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // 1. コンポーネントマウント時にPush APIのサポート状況と現在の購読状態を確認
   useEffect(() => {
@@ -79,6 +81,20 @@ export function SettingsTab({ user }: { user: User | null }) {
               useBakuStore.getState().toggleNotifications();
             }
           }
+
+          // DBから通知間隔設定を取得
+          if (user) {
+            const supabase = createClient();
+            const { data: profile } = await supabase
+              .from("baku_profiles")
+              .select("notification_interval")
+              .eq("user_id", user.id)
+              .single();
+
+            if (profile?.notification_interval) {
+              setNotificationInterval(profile.notification_interval);
+            }
+          }
         } catch (error) {
           console.error("Failed to check push subscription:", error);
         }
@@ -86,7 +102,7 @@ export function SettingsTab({ user }: { user: User | null }) {
     }
 
     checkPushSupport();
-  }, [notificationsEnabled]);
+  }, [notificationsEnabled, user]);
 
   // 通知トグルのハンドラー
   const handleNotificationToggle = async () => {
@@ -127,24 +143,32 @@ export function SettingsTab({ user }: { user: User | null }) {
       // Service Workerの準備を待つ
       const registration = await navigator.serviceWorker.ready;
 
-      // 既存の購読を確認
+      // 既存の購読を削除して新規作成（常に最新の購読を使用）
       const existingSub = await registration.pushManager.getSubscription();
       if (existingSub) {
-        console.log("Already subscribed, using existing subscription");
-        setSubscription(existingSub);
-        await subscribeUser(existingSub.toJSON(), user.id);
-        toggleNotifications();
-        return;
+        console.log("Unsubscribing existing subscription...");
+        await existingSub.unsubscribe();
       }
 
-      // 新規購読
+      // 新規購読を作成
+      console.log("Creating new subscription...");
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
       });
 
-      const serializedSub = JSON.parse(JSON.stringify(sub));
-      await subscribeUser(serializedSub, user.id);
+      // DBに保存
+      const response = await fetch("/api/save-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sub),
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || "Failed to save subscription");
+      }
+
       setSubscription(sub);
       setError(null);
       toggleNotifications();
@@ -188,6 +212,30 @@ export function SettingsTab({ user }: { user: User | null }) {
   };
 
   const isGuest = !user;
+
+  // 通知間隔変更時にDBへ保存
+  const handleIntervalChange = async (newInterval: number) => {
+    if (!user) return;
+
+    setIsSaving(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("baku_profiles")
+        .update({ notification_interval: newInterval })
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      setNotificationInterval(newInterval);
+      setError(null);
+    } catch (err) {
+      console.error("Failed to update notification interval:", err);
+      setError("通知間隔の更新に失敗しました。");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <Card className="p-6 space-y-6">
@@ -258,6 +306,9 @@ export function SettingsTab({ user }: { user: User | null }) {
       {notificationsEnabled && !isGuest && (
         <div className="space-y-3 pt-4 border-t">
           <Label className="text-base font-medium">通知間隔</Label>
+          <p className="text-sm text-muted-foreground">
+            バクが空腹になった時に、どのくらいの頻度で通知を受け取るか設定できます
+          </p>
           <div className="grid grid-cols-2 gap-3">
             {intervals.map((interval) => {
               const isSelected = notificationInterval === interval.value;
@@ -265,7 +316,8 @@ export function SettingsTab({ user }: { user: User | null }) {
                 <Button
                   key={interval.value}
                   variant="default"
-                  onClick={() => setNotificationInterval(interval.value)}
+                  onClick={() => handleIntervalChange(interval.value)}
+                  disabled={isSaving}
                   className={cn(
                     "h-auto py-3 transition-all duration-200 relative",
                     isSelected
