@@ -96,13 +96,11 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Push購読情報を取得
+        // Push購読情報を取得（複数デバイス対応）
         const { data: subscriptions, error: subError } = await supabase
           .from("push_subscriptions")
           .select("endpoint, p256dh, auth")
           .eq("user_id", profile.user_id);
-
-        const subscription = subscriptions?.[0];
 
         if (subError) {
           console.error(
@@ -112,49 +110,76 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        if (subscription) {
-          try {
-            const payload = JSON.stringify({
-              title: "バクがお腹を空かせています！",
-              body: "思い出を投稿してバクに食べさせてあげましょう。",
-              icon: "/icon-192x192.png",
-            });
+        // 全てのデバイスに通知を送信
+        if (subscriptions && subscriptions.length > 0) {
+          const payload = JSON.stringify({
+            title: "バクがお腹を空かせています！",
+            body: "思い出を投稿してバクに食べさせてあげましょう。",
+            icon: "/icon-192x192.png",
+          });
 
-            await webpush.sendNotification(
-              {
-                endpoint: subscription.endpoint,
-                keys: {
-                  p256dh: subscription.p256dh,
-                  auth: subscription.auth,
+          let deviceNotificationsSent = 0;
+          const invalidEndpoints: string[] = [];
+
+          // 各デバイスに通知を送信
+          for (const subscription of subscriptions) {
+            try {
+              await webpush.sendNotification(
+                {
+                  endpoint: subscription.endpoint,
+                  keys: {
+                    p256dh: subscription.p256dh,
+                    auth: subscription.auth,
+                  },
                 },
-              },
-              payload
-            );
+                payload
+              );
+              deviceNotificationsSent++;
+            } catch (error: any) {
+              // 410 Gone or 404: 購読が無効
+              if (error.statusCode === 410 || error.statusCode === 404) {
+                invalidEndpoints.push(subscription.endpoint);
+                console.log(
+                  `Invalid subscription endpoint: ${subscription.endpoint.substring(
+                    0,
+                    50
+                  )}...`
+                );
+              } else {
+                console.error(
+                  `Failed to send notification to endpoint ${subscription.endpoint.substring(
+                    0,
+                    50
+                  )}...:`,
+                  error
+                );
+              }
+            }
+          }
 
+          // 無効な購読を削除
+          if (invalidEndpoints.length > 0) {
+            await supabase
+              .from("push_subscriptions")
+              .delete()
+              .in("endpoint", invalidEndpoints);
+            console.log(
+              `Removed ${invalidEndpoints.length} invalid subscription(s) for user ${profile.user_id}`
+            );
+          }
+
+          // 1台以上のデバイスに送信成功した場合
+          if (deviceNotificationsSent > 0) {
             // 通知送信時刻を記録
             await supabase
               .from("baku_profiles")
               .update({ last_notification_sent_at: new Date().toISOString() })
               .eq("user_id", profile.user_id);
 
-            notificationsSent++;
-            console.log(`Notification sent to user ${profile.user_id}`);
-          } catch (error: any) {
-            // 410 Gone: 購読が無効
-            if (error.statusCode === 410 || error.statusCode === 404) {
-              await supabase
-                .from("push_subscriptions")
-                .delete()
-                .eq("user_id", profile.user_id);
-              console.log(
-                `Removed invalid subscription for user ${profile.user_id}`
-              );
-            } else {
-              console.error(
-                `Failed to send notification to user ${profile.user_id}:`,
-                error
-              );
-            }
+            notificationsSent += deviceNotificationsSent;
+            console.log(
+              `Notification sent to user ${profile.user_id} on ${deviceNotificationsSent} device(s)`
+            );
           }
         }
       }

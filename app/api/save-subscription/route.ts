@@ -22,12 +22,14 @@ export async function POST(request: NextRequest) {
       endpoint: subscription.endpoint || "",
       p256dh: subscription.keys?.p256dh || "",
       auth: subscription.keys?.auth || "",
+      device_name: subscription.deviceName || null,
     };
 
-    // upsert: 既存のレコードがあれば更新、なければ挿入
+    // upsert: endpointをキーにして、同じデバイスの購読情報を更新
+    // 複数デバイス対応: 異なるendpointは別レコードとして保存される
     const { error } = await supabase
       .from("push_subscriptions")
-      .upsert(subscriptionData, { onConflict: "user_id" });
+      .upsert(subscriptionData, { onConflict: "endpoint" });
 
     if (error) {
       console.error("Failed to save subscription:", error);
