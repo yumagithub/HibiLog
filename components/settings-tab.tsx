@@ -143,19 +143,18 @@ export function SettingsTab({ user }: { user: User | null }) {
       // Service Workerの準備を待つ
       const registration = await navigator.serviceWorker.ready;
 
-      // 既存の購読を削除して新規作成（常に最新の購読を使用）
-      const existingSub = await registration.pushManager.getSubscription();
-      if (existingSub) {
-        console.log("Unsubscribing existing subscription...");
-        await existingSub.unsubscribe();
-      }
+      // 既存の購読があればそれを使用、なければ新規作成
+      let sub = await registration.pushManager.getSubscription();
 
-      // 新規購読を作成
-      console.log("Creating new subscription...");
-      const sub = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
-      });
+      if (!sub) {
+        console.log("Creating new subscription...");
+        sub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        });
+      } else {
+        console.log("Using existing subscription...");
+      }
 
       // DBに保存
       const response = await fetch("/api/save-subscription", {
