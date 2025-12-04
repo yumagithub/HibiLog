@@ -184,7 +184,8 @@ export function SettingsTab({ user }: { user: User | null }) {
     if (!subscription || !user) return;
     try {
       await subscription.unsubscribe();
-      await unsubscribeUser(user.id);
+      // このデバイスの購読のみ削除（endpointを指定）
+      await unsubscribeUser(subscription.endpoint);
       setSubscription(null);
       setError(null);
     } catch (err) {
