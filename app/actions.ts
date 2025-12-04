@@ -26,10 +26,11 @@ export async function subscribeUser(sub: PushSubscriptionJSON, userId: string) {
     auth: sub.keys?.auth || "",
   };
 
-  // upsert: 既存のレコードがあれば更新、なければ挿入
+  // upsert: endpointをキーにして、同じデバイスの購読情報を更新
+  // 複数デバイス対応: 異なるendpointは別レコードとして保存される
   const { error } = await supabase
     .from("push_subscriptions")
-    .upsert(subscriptionData, { onConflict: "user_id" });
+    .upsert(subscriptionData, { onConflict: "endpoint" });
 
   if (error) {
     console.error("Failed to save subscription:", error);
@@ -103,6 +104,9 @@ export async function sendNotification(
   if (successCount > 0) {
     return { success: true };
   } else {
-    return { success: false, error: "Failed to send notification to all devices" };
+    return {
+      success: false,
+      error: "Failed to send notification to all devices",
+    };
   }
 }
