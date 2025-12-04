@@ -11,5 +11,5 @@ jobs:
     steps:
       - name: Call hunger-check API
         run: |
-          curl -X POST "https://your-app.vercel.app/api/cron/hunger-check" \
+          curl -X POST "https://hibi-log.vercel.app/api/cron/hunger-check" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
