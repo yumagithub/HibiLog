@@ -70,37 +70,39 @@ export async function sendNotification(
 ) {
   const supabase = await createClient();
 
-  // データベースからユーザーの購読情報を取得
+  // データベースからユーザーの全購読情報を取得（複数デバイス対応）
   const { data, error } = await supabase
     .from("push_subscriptions")
     .select("endpoint, p256dh, auth")
-    .eq("user_id", userId)
-    .single();
+    .eq("user_id", userId);
 
-  if (error || !data) {
+  if (error || !data || data.length === 0) {
     return { success: false, error: "Subscription not found" };
   }
 
-  // PushSubscriptionオブジェクトを再構築
-  const subscription: webpush.PushSubscription = {
-    endpoint: data.endpoint,
-    keys: {
-      p256dh: data.p256dh,
-      auth: data.auth,
-    },
-  };
+  // 全デバイスに通知を送信
+  let successCount = 0;
+  for (const subscriptionData of data) {
+    const subscription: webpush.PushSubscription = {
+      endpoint: subscriptionData.endpoint,
+      keys: {
+        p256dh: subscriptionData.p256dh,
+        auth: subscriptionData.auth,
+      },
+    };
 
-  try {
-    await webpush.sendNotification(subscription, JSON.stringify(payload));
-    return { success: true };
-  } catch (error) {
-    // 購読が無効または期限切れの場合(410 Gone)、購読情報を削除します。
-    if (
-      error instanceof webpush.WebPushError &&
-      (error.statusCode === 410 || error.statusCode === 404)
-    ) {
-      await unsubscribeUser(userId);
+    try {
+      await webpush.sendNotification(subscription, JSON.stringify(payload));
+      successCount++;
+    } catch (err) {
+      console.error("Failed to send to device:", err);
+      // エラーは無視して次のデバイスへ
     }
-    return { success: false, error: "Failed to send notification" };
+  }
+
+  if (successCount > 0) {
+    return { success: true };
+  } else {
+    return { success: false, error: "Failed to send notification to all devices" };
   }
 }
