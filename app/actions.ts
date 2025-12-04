@@ -41,16 +41,16 @@ export async function subscribeUser(sub: PushSubscriptionJSON, userId: string) {
 }
 
 /**
- * ユーザーのプッシュ通知購読を解除します。
- * @param userId ユーザーID
+ * 特定デバイスのプッシュ通知購読を解除します。
+ * @param endpoint 削除する購読のendpoint
  */
-export async function unsubscribeUser(userId: string) {
+export async function unsubscribeUser(endpoint: string) {
   const supabase = await createClient();
 
   const { error } = await supabase
     .from("push_subscriptions")
     .delete()
-    .eq("user_id", userId);
+    .eq("endpoint", endpoint);
 
   if (error) {
     console.error("Failed to delete subscription:", error);
