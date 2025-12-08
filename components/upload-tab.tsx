@@ -16,6 +16,7 @@ import {
   Image as ImageIcon,
   CheckCircle,
   XCircle,
+  MapPin, //MapPinアイコンを追加
 } from "lucide-react";
 import { useBakuStore } from "@/lib/store";
 import { MOOD_OPTIONS, type MoodOption } from "@/lib/mood-emojis";
@@ -39,6 +40,13 @@ export function UploadTab({ user }: { user: User | null }) {
     type: "success" | "error";
     text: string;
   } | null>(null);
+
+  //　位置情報入力フィールド（手動入力用・オプション）
+  const [manualLocation, setManualLocation] = useState<{
+    latitude: string;
+    longitude: string;
+  } | null>(null);
+  // 
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -67,6 +75,11 @@ export function UploadTab({ user }: { user: User | null }) {
     setIsUploading(true);
     setMessage(null);
 
+    // 【修正開始】変数をtryの外（handleSubmitのスコープ）で定義し直す
+    const parsedLatitude = manualLocation?.latitude ? parseFloat(manualLocation.latitude) : null;
+    const parsedLongitude = manualLocation?.longitude ? parseFloat(manualLocation.longitude) : null;
+    // 【修正終了】
+
     try {
       // ゲストモード: LocalStorageのみに保存
       if (!user) {
@@ -83,6 +96,9 @@ export function UploadTab({ user }: { user: User | null }) {
             moodEmoji: selectedMood.emoji,
             moodCategory: selectedMood.category,
             textContent: textContent || undefined,
+            // このスコープで外部の変数を参照
+            latitude: parsedLatitude,
+            longitude: parsedLongitude,       
           });
 
           // バクに食べさせる
@@ -105,7 +121,7 @@ export function UploadTab({ user }: { user: User | null }) {
             "file-upload"
           ) as HTMLInputElement;
           if (fileInput) fileInput.value = "";
-
+          setManualLocation(null);
           setIsUploading(false);
         };
         reader.readAsDataURL(file);
@@ -159,6 +175,8 @@ export function UploadTab({ user }: { user: User | null }) {
         media_type: mediaType,
         mood_emoji: selectedMood.emoji,
         mood_category: selectedMood.category,
+        latitude: parsedLatitude,
+        longitude: parsedLongitude,
       });
 
       if (insertError) {
@@ -235,6 +253,7 @@ export function UploadTab({ user }: { user: User | null }) {
         "file-upload"
       ) as HTMLInputElement;
       if (fileInput) fileInput.value = "";
+      setManualLocation(null);
     } catch (error) {
       const err = error as Error;
       setMessage({ type: "error", text: err.message });
@@ -324,6 +343,56 @@ export function UploadTab({ user }: { user: User | null }) {
             disabled={isUploading}
           />
         </div>
+
+        {/* 【変更開始】手動位置情報入力フィールドの追加 */}
+        <div className="space-y-2 border-t pt-4">
+          <Label className="flex items-center gap-2 text-sm font-medium">
+            <MapPin className="h-4 w-4" />
+            場所を記録 (オプション)
+          </Label>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="latitude" className="text-xs text-muted-foreground">
+                緯度 (Latitude)
+              </Label>
+              <Input
+                id="latitude"
+                type="number"
+                step="any"
+                placeholder="例: 35.6895"
+                value={manualLocation?.latitude || ""}
+                onChange={(e) => setManualLocation(prev => ({
+                    ...prev,
+                    latitude: e.target.value,
+                    longitude: prev?.longitude || "", // 既存のlongitudeを維持
+                }))}
+                disabled={isUploading}
+              />
+            </div>
+            <div>
+              <Label htmlFor="longitude" className="text-xs text-muted-foreground">
+                経度 (Longitude)
+              </Label>
+              <Input
+                id="longitude"
+                type="number"
+                step="any"
+                placeholder="例: 139.6917"
+                value={manualLocation?.longitude || ""}
+                onChange={(e) => setManualLocation(prev => ({
+                    ...prev,
+                    latitude: prev?.latitude || "", // 既存のlatitudeを維持
+                    longitude: e.target.value,
+                }))}
+                disabled={isUploading}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            正確な場所が特定できなかった場合に手動で入力できます。
+          </p>
+        </div>
+        {/* 【変更終了】 */}
 
         {/* 感情選択 */}
         <div className="space-y-2">

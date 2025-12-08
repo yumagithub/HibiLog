@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useBakuStore } from "@/lib/store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, AlertTriangle, Grid3x3, CalendarDays } from "lucide-react";
+import { Calendar, AlertTriangle, Grid3x3, CalendarDays,MapPin } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { MemoryDetailModal } from "@/components/memory-detail-modal";
 import { CalendarView } from "@/components/calendar-view";
@@ -23,6 +23,11 @@ export type Memory = {
   user_id: string;
   mood_emoji: string | null;
   mood_category: string | null;
+  // 【修正】位置情報関連の全プロパティを追加
+  latitude: number | null;
+  longitude: number | null;
+  location_name: string | null;
+  address: string | null;
 };
 
 export function MemoriesTab({ user }: { user: User | null }) {
@@ -76,6 +81,11 @@ export function MemoriesTab({ user }: { user: User | null }) {
             user_id: "guest",
             mood_emoji: m.moodEmoji || null,
             mood_category: m.moodCategory || null,
+            // 【重要】位置情報をマッピング
+            latitude: (m as any).latitude || null,
+            longitude: (m as any).longitude || null,
+            location_name: (m as any).location_name || null,
+            address: (m as any).address || null,
           }));
           setMemories(localMems);
           setLoading(false);
@@ -138,7 +148,9 @@ export function MemoriesTab({ user }: { user: User | null }) {
       </Card>
     );
   }
-
+  // 位置情報を持っているかどうかをチェックするヘルパー関数
+  const hasLocation = (memory: Memory) => 
+    memory.latitude !== null && memory.longitude !== null;
   return (
     <>
       {/* ビュー切り替えボタン */}
@@ -239,6 +251,23 @@ export function MemoriesTab({ user }: { user: User | null }) {
                   ) : (
                     <span className="text-2xl">{memory.mood_emoji}</span>
                   )}
+                </motion.div>
+              )}
+
+              {/* 【追加】位置情報アイコン */}
+              {hasLocation(memory) && (
+                <motion.div
+                  className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center shadow-md opacity-80"
+                  initial={{ scale: 0, x: -10 }}
+                  animate={{ scale: 1, x: 0 }}
+                  transition={{
+                    delay: index * 0.1 + 0.4,
+                    type: "spring",
+                    stiffness: 200,
+                    damping: 10,
+                  }}
+                >
+                  <MapPin className="h-4 w-4 text-gray-700" />
                 </motion.div>
               )}
 

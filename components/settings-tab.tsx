@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useBakuStore } from "@/lib/store";
 import { Bell, Check, UserCircle, UserPlus } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import { MapPin } from "lucide-react";
 
 const intervals = [
   { value: 3, label: "3時間おき" },
@@ -101,6 +103,16 @@ export function SettingsTab({ user }: { user: User | null }) {
           </div>
         </div>
       )}
+
+      {/* Map Link */}
+      <div className="pt-4 border-t">
+        <Link href="/map">
+          <Button variant="outline" className="w-full justify-start">
+            <MapPin className="h-5 w-5 mr-2" />
+            思い出マップを見る
+          </Button>
+        </Link>
+      </div>
 
       {/* Info Card */}
       <div className="pt-4 border-t">

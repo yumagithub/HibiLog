@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X, Calendar, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Calendar, FileText, MapPin } from "lucide-react";
 import type { Memory } from "./memories-tab";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -43,6 +43,9 @@ export function MemoryDetailModal({
   const currentMemory = memories[currentIndex] || memory;
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < memories.length - 1;
+
+  // 【追加】位置情報が存在するかチェックするヘルパー関数
+  const hasLocation = currentMemory.latitude !== null && currentMemory.longitude !== null;
 
   const goToPrevious = () => {
     if (hasPrevious) {
@@ -234,19 +237,42 @@ export function MemoryDetailModal({
                     </motion.div>
                   )}
 
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>
-                      {new Date(currentMemory.memory_date).toLocaleDateString(
-                        "ja-JP",
-                        {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                          weekday: "long",
-                        }
-                      )}
-                    </span>
+                  {/* 日付と位置情報 */}
+                  <div className="space-y-2">
+                    {/* 日付 */}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      <span>
+                        {new Date(currentMemory.memory_date).toLocaleDateString(
+                          "ja-JP",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            weekday: "long",
+                          }
+                        )}
+                      </span>
+                    </div>
+
+                    {/* 【追加】位置情報表示ブロック */}
+                    {hasLocation && (
+                      <div className="flex items-start gap-2 text-sm text-muted-foreground pt-1">
+                        <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="font-medium text-foreground">
+                            {currentMemory.location_name || "位置情報"}
+                          </p>
+                          {currentMemory.address && (
+                            <p className="text-xs">{currentMemory.address}</p>
+                          )}
+                          <p className="text-xs opacity-70">
+                            {currentMemory.latitude?.toFixed(6)},{" "}
+                            {currentMemory.longitude?.toFixed(6)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {currentMemory.text_content && (

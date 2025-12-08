@@ -17,6 +17,7 @@ import { HungerDebugPanel } from "@/components/hunger-debug-panel";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LogOut } from "lucide-react";
+import HighlightModal from "@/components/HighlightModal";
 
 const CurrentView = ({ user }: { user: User | null }) => {
   const activeView = useBakuStore((state) => state.activeView);
@@ -38,14 +39,40 @@ export default function HibiLogApp() {
   const supabase = createClient();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [longestStreak, setLongestStreak] = useState(0);
+  const [showHighlight, setShowHighlight] = useState(false);
+
   const updateHunger = useBakuStore((state) => state.updateHunger);
   const feedBaku = useBakuStore((state) => state.feedBaku);
   const setHunger = useBakuStore((state) => state.setHunger);
   const setLastFed = useBakuStore((state) => state.setLastFed);
-  const localMemories = useBakuStore((state) => state.memories);
+  const localMemories = useBakuStore((state) => state.memories); 
+
+
+  //   // 🔐 ログインユーザー取得
+  // useEffect(() => {
+  //   async function load() {
+  //     const {
+  //       data: { session },
+  //     } = await supabase.auth.getSession();
+
+  //     setUserId(session?.user.id ?? null);
+  //   }
+  //   load();
+  // }, []);
+  
+  //   // ⭐ アプリ初回ロード時：ゲストでもログインユーザーでも 1 回だけ表示
+  // useEffect(() => {
+  //   const sessionKey = "highlight_shown_session";
+  //   const hasShown = sessionStorage.getItem(sessionKey) === "true";
+
+  //   if (!hasShown) {
+  //     setShowHighlight(true);
+  //   }
+  // }, []);
 
   // 満腹度の自動更新
   useEffect(() => {
@@ -60,47 +87,56 @@ export default function HibiLogApp() {
     return () => clearInterval(interval);
   }, [updateHunger]);
 
-  // 認証チェック
+  // 【統合済み】認証チェック、ユーザー/IDの設定、初回モーダル表示チェック
   useEffect(() => {
     const checkUser = async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
+      const currentUserId = session?.user.id || null;
+
       if (!session) {
         // セッションがない場合はゲストモードとして続行
         setUser(null);
-        setLoading(false);
-        return;
-      }
+        setUserId(null);
+      } else {
+        // ログインユーザーの場合
+        setUser(session.user);
+        setUserId(currentUserId); 
 
-      // ログインユーザーの場合
-      setUser(session.user);
+        // public.usersテーブルにユーザーが存在するか確認、なければ作成
+        const { data: existingUser, error: checkError } = await supabase
+          .from("users")
+          .select("id")
+          .eq("id", session.user.id)
+          .single();
 
-      // public.usersテーブルにユーザーが存在するか確認、なければ作成
-      const { data: existingUser, error: checkError } = await supabase
-        .from("users")
-        .select("id")
-        .eq("id", session.user.id)
-        .single();
+        if (checkError && checkError.code === "PGRST116") {
+          const { error: insertError } = await supabase.from("users").insert({
+            id: session.user.id,
+            email: session.user.email,
+            is_anonymous: session.user.is_anonymous || false,
+            created_at: session.user.created_at,
+          });
 
-      if (checkError && checkError.code === "PGRST116") {
-        // ユーザーが存在しない場合、作成
-        const { error: insertError } = await supabase.from("users").insert({
-          id: session.user.id,
-          email: session.user.email,
-          is_anonymous: session.user.is_anonymous || false,
-          created_at: session.user.created_at,
-        });
-
-        if (insertError) {
-          console.error("ユーザー作成エラー:", insertError);
-        } else {
-          console.log("ユーザーレコードを作成しました");
+          if (insertError) {
+            console.error("ユーザー作成エラー:", insertError);
+          } else {
+            console.log("ユーザーレコードを作成しました");
+          }
         }
       }
 
       setLoading(false);
+      
+      // 【ゲスト/ログイン共通のモーダル表示チェック】認証チェック完了後（loading=false）に実行
+      const sessionKey = `highlight_shown_session`;
+      const hasShownThisSession = sessionStorage.getItem(sessionKey) === 'true';
+
+      if (!hasShownThisSession) {
+          setShowHighlight(true);
+      }
     };
 
     checkUser();
@@ -109,12 +145,12 @@ export default function HibiLogApp() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
-        router.push("/login");
       } else if (session) {
+        // ログイン状態の変化があればStateを更新
         setUser(session.user);
-      }
+        setUserId(session.user.id);
+      } 
     });
-
     return () => subscription.unsubscribe();
   }, [supabase, router]);
 
@@ -284,6 +320,14 @@ export default function HibiLogApp() {
   }, [user]);
 
   const handleLogout = async () => {
+    // 【修正開始】ログアウト操作時にセッションフラグをクリアする
+    try {
+      sessionStorage.removeItem(`highlight_shown_session`);
+    } catch (e) {
+      console.warn("セッションストレージのクリアに失敗しました。", e);
+    }
+    // 【修正終了】
+
     if (user) {
       await supabase.auth.signOut();
     }
@@ -372,6 +416,16 @@ export default function HibiLogApp() {
 
       {/* スマホ用ボトムナビゲーション */}
       <BottomNav />
+      {/* ⭐ 月ハイライトモーダル */}
+      {showHighlight &&  (
+        <HighlightModal 
+          onClose={() => {
+            setShowHighlight(false);
+            sessionStorage.setItem("highlight_shown_session", "true");
+          }} 
+          userId={userId}
+        />
+      )}
 
       {/* 開発用デバッグパネル（開発環境でのみ表示） */}
       {process.env.NODE_ENV === "development" && <HungerDebugPanel />}
