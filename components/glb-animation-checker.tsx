@@ -4,7 +4,7 @@ import { useGLTF } from "@react-three/drei";
 import { useEffect } from "react";
 
 export function GLBAnimationChecker() {
-  const gltf = useGLTF("/models/baku-model1118.glb");
+  const gltf = useGLTF("/models/baku-model.glb");
 
   useEffect(() => {
     console.log("\n=== Baku Model Analysis ===");

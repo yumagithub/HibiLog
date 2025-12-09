@@ -120,7 +120,7 @@ export function MemoriesTab({ user }: { user: User | null }) {
           // 日付フィルタ（ローカル基準で比較）
           if (selectedDate) {
             const memDate = (memory.memory_date || "").slice(0, 10); // "YYYY-MM-DD"
-            const filterDate = formatDateToYMD(selectedDate);        // "YYYY-MM-DD"
+            const filterDate = formatDateToYMD(selectedDate); // "YYYY-MM-DD"
             if (memDate !== filterDate) return false;
           }
           // 感情フィルタ
@@ -262,12 +262,7 @@ export function MemoriesTab({ user }: { user: User | null }) {
                 onClick={() => setIsMoodDropdownOpen((v) => !v)}
               >
                 {selectedMood ? (
-                  <Image
-                    src={selectedMood.emoji}
-                    alt={selectedMood.label}
-                    width={22}
-                    height={22}
-                  />
+                  <span className="text-xl">{selectedMood.emoji}</span>
                 ) : (
                   <span className="text-xs">感情</span>
                 )}
@@ -284,12 +279,7 @@ export function MemoriesTab({ user }: { user: User | null }) {
                         setIsMoodDropdownOpen(false);
                       }}
                     >
-                      <Image
-                        src={mood.emoji}
-                        alt={mood.label}
-                        width={18}
-                        height={18}
-                      />
+                      <span className="text-lg">{mood.emoji}</span>
                       <span className="text-xs">{mood.label}</span>
                     </button>
                   ))}
@@ -333,13 +323,8 @@ export function MemoriesTab({ user }: { user: User | null }) {
                     />
                   )}
                   {memory.mood_emoji && (
-                    <motion.div className="absolute top-2 right-2 bg-white/80 rounded-full w-10 h-10 flex items-center justify-center shadow-md">
-                      <Image
-                        src={memory.mood_emoji}
-                        alt="mood"
-                        width={28}
-                        height={28}
-                      />
+                    <motion.div className="absolute top-2 right-2 bg-white/80 rounded-full w-10 h-10 flex items-center justify-center shadow-md text-2xl">
+                      {memory.mood_emoji}
                     </motion.div>
                   )}
                   <motion.div

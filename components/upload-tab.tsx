@@ -422,13 +422,7 @@ export function UploadTab({ user }: { user: User | null }) {
                           ease: "easeOut",
                         }}
                       >
-                        <Image
-                          src={mood.emoji}
-                          alt={mood.label}
-                          width={48}
-                          height={48}
-                          className="w-12 h-12"
-                        />
+                        <span className="text-5xl">{mood.emoji}</span>
                       </motion.span>
                       <span className="text-xs">{mood.label}</span>
                       {isSelected && (
