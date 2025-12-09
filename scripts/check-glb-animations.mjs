@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 const loader = new GLTFLoader();
 
 // GLBファイルを読み込み
-const glbPath = "./public/models/baku-model1118.glb";
+const glbPath = "./public/models/baku-model.glb";
 const glbData = readFileSync(glbPath);
 const arrayBuffer = glbData.buffer.slice(
   glbData.byteOffset,
