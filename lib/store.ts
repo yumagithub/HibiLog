@@ -10,6 +10,9 @@ interface Memory {
   moodEmoji?: string;
   moodCategory?: string;
   textContent?: string;
+  // 位置情報関連（新規追加）
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export type ActiveView = "upload" | "memories" | "settings";
@@ -78,11 +81,15 @@ export const useBakuStore = create<BakuStore>()(
           id: "dummy-1",
           imageUrl: "/figure1.png",
           timestamp: new Date("2025-10-13T12:00:00").toISOString(),
+          latitude: null,
+          longitude: null
         },
         {
           id: "dummy-2",
           imageUrl: "/figure2.png",
           timestamp: new Date("2025-10-14T09:00:00").toISOString(),
+          latitude: null,
+          longitude: null
         },
       ],
       notificationsEnabled: false,

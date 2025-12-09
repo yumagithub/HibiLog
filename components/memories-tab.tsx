@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Grid3x3,
   CalendarDays,
+  MapPin,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { MemoryDetailModal } from "@/components/memory-detail-modal";
@@ -45,6 +46,11 @@ export type Memory = {
   user_id: string;
   mood_emoji: string | null;
   mood_category: string | null;
+  // 【修正】位置情報関連の全プロパティを追加
+  latitude: number | null;
+  longitude: number | null;
+  location_name: string | null;
+  address: string | null;
 };
 
 export function MemoriesTab({ user }: { user: User | null }) {
@@ -89,6 +95,11 @@ export function MemoriesTab({ user }: { user: User | null }) {
             user_id: "guest",
             mood_emoji: m.moodEmoji || null,
             mood_category: m.moodCategory || null,
+            // 【重要】位置情報をマッピング
+            latitude: (m as any).latitude || null,
+            longitude: (m as any).longitude || null,
+            location_name: (m as any).location_name || null,
+            address: (m as any).address || null,
           }));
           setMemories(localMems);
           setLoading(false);
@@ -169,6 +180,10 @@ export function MemoriesTab({ user }: { user: User | null }) {
         <p className="mt-2 text-muted-foreground">思い出がありません</p>
       </Card>
     );
+
+  // 位置情報を持っているかどうかをチェックするヘルパー関数
+  const hasLocation = (memory: Memory) =>
+    memory.latitude !== null && memory.longitude !== null;
 
   const dateLabel = selectedDate
     ? selectedDate.toLocaleDateString("ja-JP", {
@@ -322,20 +337,65 @@ export function MemoriesTab({ user }: { user: User | null }) {
                       whileHover={{ scale: 1.1 }}
                     />
                   )}
+
+                  {/* Mood Emoji Badge */}
                   {memory.mood_emoji && (
-                    <motion.div className="absolute top-2 right-2 bg-white/80 rounded-full w-10 h-10 flex items-center justify-center shadow-md text-2xl">
-                      {memory.mood_emoji}
+                    <motion.div
+                      className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full w-10 h-10 flex items-center justify-center shadow-md"
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{
+                        delay: index * 0.1 + 0.3,
+                        type: "spring",
+                        stiffness: 200,
+                        damping: 10,
+                      }}
+                      whileHover={{
+                        scale: 1.2,
+                        rotate: 360,
+                        transition: { duration: 0.5 },
+                      }}
+                    >
+                      <span className="text-2xl">{memory.mood_emoji}</span>
                     </motion.div>
                   )}
+
+                  {/* 位置情報アイコン */}
+                  {hasLocation(memory) && (
+                    <motion.div
+                      className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center shadow-md opacity-80"
+                      initial={{ scale: 0, x: -10 }}
+                      animate={{ scale: 1, x: 0 }}
+                      transition={{
+                        delay: index * 0.1 + 0.4,
+                        type: "spring",
+                        stiffness: 200,
+                        damping: 10,
+                      }}
+                    >
+                      <MapPin className="h-4 w-4 text-gray-700" />
+                    </motion.div>
+                  )}
+
+                  {/* Full Card Overlay */}
                   <motion.div
-                    className="absolute inset-0 bg-linear-to-t from-black/70 p-3 text-white flex flex-col justify-end"
+                    className="absolute inset-0 flex flex-col justify-end bg-linear-to-t from-black/70 via-transparent to-transparent p-3 text-white pointer-events-none"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: hoveredId === memory.id ? 1 : 0 }}
+                    transition={{ duration: 0.3 }}
                   >
                     {memory.text_content && (
-                      <p className="text-sm font-semibold line-clamp-2 mb-1">
+                      <motion.p
+                        className="line-clamp-2 font-semibold text-sm mb-1"
+                        initial={{ y: 10, opacity: 0 }}
+                        animate={{
+                          y: hoveredId === memory.id ? 0 : 10,
+                          opacity: hoveredId === memory.id ? 1 : 0,
+                        }}
+                        transition={{ delay: 0.1 }}
+                      >
                         {memory.text_content}
-                      </p>
+                      </motion.p>
                     )}
                     <p className="text-xs">
                       {new Date(memory.memory_date).toLocaleDateString(

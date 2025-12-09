@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Camera, RefreshCw, ArrowLeft } from "lucide-react"
+import type { GeolocationData } from "@/lib/types";
 
 type Facing = "user" | "environment"
 
@@ -18,6 +19,9 @@ export default function CameraPage() {
   const [facingMode, setFacingMode] = useState<Facing>("environment")
   const [isStarting, setIsStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [location, setLocation] = useState<GeolocationData>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
   const stopStream = useCallback(() => {
     stream?.getTracks().forEach((t) => t.stop())
@@ -45,6 +49,74 @@ export default function CameraPage() {
     }
   }, [facingMode, stopStream])
 
+  // カメラページを開いた時に位置情報を取得
+  useEffect(() => {
+    requestLocation();
+  }, []);
+
+const requestLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError("このブラウザは位置情報に対応していません");
+      return;
+    }
+
+    setIsLoadingLocation(true);
+
+    const options: PositionOptions = {
+      enableHighAccuracy: true, // 高精度モード（GPS優先）
+      timeout: 10000, // 10秒でタイムアウト
+      maximumAge: 0, // キャッシュを使わない
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          altitude: position.coords.altitude,
+          altitudeAccuracy: position.coords.altitudeAccuracy,
+          heading: position.coords.heading,
+          speed: position.coords.speed,
+        });
+        setLocationError(null);
+        setIsLoadingLocation(false);
+        console.log("✅ 位置情報取得成功:", position.coords);
+      },
+      // 【修正箇所】エラーハンドラーのログ出力方法を修正
+      (error) => {
+        // エラーコードとメッセージを明確に、かつオブジェクト形式で出力
+        console.error("❌ 位置情報取得エラー:", {
+          code: error.code,
+          message: error.message,
+          rawError: error, // 生のオブジェクトも出力し詳細を確保
+        });
+        setIsLoadingLocation(false);
+
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError(
+              "位置情報の使用が拒否されました。ブラウザの設定を確認してください。"
+            );
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationError(
+              "位置情報が利用できません。GPS/Wi-Fiをオンにしてください。"
+            );
+            break;
+          case error.TIMEOUT:
+            setLocationError(
+              "位置情報の取得がタイムアウトしました。もう一度お試しください。"
+            );
+            break;
+          default:
+            setLocationError(`位置情報の取得に失敗しました (Code: ${error.code})`); // 汎用エラーメッセージも詳細化
+        }
+      },
+      options
+    );
+  };
+  
   useEffect(() => {
     startStream("environment")
     return () => stopStream()
@@ -57,7 +129,7 @@ export default function CameraPage() {
     await startStream(next)
   }
 
-  const capture = () => {
+  const handleCapture = () => {
     if (!videoRef.current || !canvasRef.current) return
     const w = videoRef.current.videoWidth
     const h = videoRef.current.videoHeight
@@ -74,6 +146,11 @@ export default function CameraPage() {
     // 1) 세션 스토리지에 임시 저장
     try {
       sessionStorage.setItem("camera:lastShot", dataUrl)
+
+      // 位置情報を保存
+      if (location) {
+        sessionStorage.setItem("camera:location", JSON.stringify(location));
+      }
     } catch {}
 
     // 2) 미리보기 페이지로 이동
@@ -92,6 +169,38 @@ export default function CameraPage() {
 
         <Card className="p-4 gap-4">
           <div className="relative rounded-xl overflow-hidden bg-muted aspect-[3/4] flex items-center justify-center">
+            <div className="absolute top-4 left-4 z-20"> {/* z-20でカメラ上に表示 */}
+              {isLoadingLocation && (
+                <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-xs flex items-center gap-2">
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  位置情報を取得中...
+                </div>
+              )}
+
+              {location && !locationError && (
+                <div className="bg-green-500/20 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-xs">
+                  📍 位置情報取得済み（精度: {Math.round(location.accuracy)}m）
+                </div>
+              )}
+              {locationError && (
+                <div className="bg-red-500/20 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-xs max-w-xs">
+                  <div className="flex items-start gap-2">
+                    <span>⚠️</span>
+                    <div>
+                      <p>{locationError}</p>
+                      {/* requestLocation関数が外部で定義されていることを前提 */}
+                      <button
+                        onClick={requestLocation} 
+                        className="mt-1 underline text-blue-300"
+                      >
+                        再取得
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+    
             <video
               ref={videoRef}
               playsInline
@@ -119,7 +228,7 @@ export default function CameraPage() {
             </Button>
 
             <Button
-              onClick={capture}
+              onClick={handleCapture}
               disabled={!stream || isStarting}
               className="col-span-1"
               title="撮影"

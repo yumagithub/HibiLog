@@ -7,6 +7,10 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useBakuStore } from "@/lib/store";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
+import { MapPin } from "lucide-react";
 import {
   Bell,
   Check,
@@ -16,8 +20,6 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
-import type { User } from "@supabase/supabase-js";
 import {
   subscribeUser,
   unsubscribeUser,
@@ -347,6 +349,16 @@ export function SettingsTab({ user }: { user: User | null }) {
           </Button>
         </div>
       )}
+
+      {/* Map Link */}
+      <div className="pt-4 border-t">
+        <Link href="/map">
+          <Button variant="outline" className="w-full justify-start">
+            <MapPin className="h-5 w-5 mr-2" />
+            思い出マップを見る
+          </Button>
+        </Link>
+      </div>
 
       {/* Info Card */}
       <div className="pt-4 border-t">

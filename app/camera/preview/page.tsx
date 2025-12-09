@@ -16,6 +16,10 @@ import { ArrowLeft, Camera, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import { useBakuStore } from "@/lib/store";
 import { MOOD_OPTIONS, type MoodOption } from "@/lib/mood-emojis";
 import { motion, AnimatePresence } from "framer-motion";
+import type { GeolocationData } from "@/lib/types";
+
+
+
 
 export default function CameraPreviewPage() {
   const supabase = createClient();
@@ -31,6 +35,7 @@ export default function CameraPreviewPage() {
   );
   const [textContent, setTextContent] = useState("");
   const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
+  const [location, setLocation] = useState<GeolocationData>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -55,10 +60,22 @@ export default function CameraPreviewPage() {
     } catch {
       setImageUrl(null);
     }
+    //sessionStorageから位置情報を取得しStateに設定
+    const storedLocation = sessionStorage.getItem("camera:location");
+    if (storedLocation) {
+      try {
+        setLocation(JSON.parse(storedLocation));
+      } catch (e) {
+        console.error("Failed to parse location data:", e);
+        setLocation(null);
+      }
+    }
   }, [supabase]);
 
   const handleRetake = () => {
     sessionStorage.removeItem("camera:lastShot");
+    //撮り直し時に位置情報もクリア
+    sessionStorage.removeItem("camera:location");
     router.push("/camera");
   };
 
@@ -78,6 +95,10 @@ export default function CameraPreviewPage() {
     setIsUploading(true);
     setMessage(null);
 
+    // 【追加】位置情報変数を準備
+    const lat = location?.latitude || null;
+    const lng = location?.longitude || null;
+
     try {
       // ゲストモード: LocalStorageのみに保存
       if (!user) {
@@ -89,6 +110,9 @@ export default function CameraPreviewPage() {
           moodEmoji: selectedMood.emoji,
           moodCategory: selectedMood.category,
           textContent: textContent || undefined,
+          // 【修正開始】位置情報を addMemory に渡す
+          latitude: lat, 
+          longitude: lng,
         });
 
         // バクに食べさせる
@@ -187,6 +211,8 @@ export default function CameraPreviewPage() {
         media_type: "photo",
         mood_emoji: selectedMood.emoji,
         mood_category: selectedMood.category,
+        latitude: lat,
+        longitude: lng,
         emotion_score: emotionScore,
       });
 
@@ -243,7 +269,8 @@ export default function CameraPreviewPage() {
 
       // sessionStorageをクリア
       sessionStorage.removeItem("camera:lastShot");
-
+      sessionStorage.removeItem("camera:location"); // 位置情報もクリア
+      
       // 少し待ってからホームに戻る
       setTimeout(() => {
         router.push("/");
@@ -323,6 +350,13 @@ export default function CameraPreviewPage() {
                   disabled={isUploading}
                 />
               </div>
+
+              {/* 位置情報入力フィールド */}
+              {location && (
+              <div className="text-sm text-gray-600">
+                📍 {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+              </div>
+              )}
 
               {/* 感情選択 */}
               <div className="space-y-2">
