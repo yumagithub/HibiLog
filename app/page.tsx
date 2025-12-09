@@ -8,7 +8,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useBakuStore } from "@/lib/store";
 import { calculateStreaks } from "@/lib/streak-calculator";
 import { BakuDisplay } from "@/components/baku-display";
-import { UploadTab } from "@/components/upload-tab";
 import { MemoriesTab } from "@/components/memories-tab";
 import { SettingsTab } from "@/components/settings-tab";
 import { BottomNav } from "@/components/bottom-nav";
@@ -18,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LogOut } from "lucide-react";
 import HighlightModal from "@/components/HighlightModal";
+
+// 投稿タブは/cameraページに遷移するため、UploadTabは不要と判断し削除しました
 
 const CurrentView = ({ user }: { user: User | null }) => {
   const activeView = useBakuStore((state) => state.activeView);
@@ -35,7 +36,8 @@ const CurrentView = ({ user }: { user: User | null }) => {
   }
 };
 
-export default function HibiLogApp() {
+// 元の HibiLogApp のロジックを ClientAppManager の子としてラップします
+function HibiLogApp() {
   const supabase = createClient();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -46,46 +48,24 @@ export default function HibiLogApp() {
   const [showHighlight, setShowHighlight] = useState(false);
 
   const updateHunger = useBakuStore((state) => state.updateHunger);
-  const feedBaku = useBakuStore((state) => state.feedBaku);
+  // const feedBaku = useBakuStore((state) => state.feedBaku); // 使用されていないため削除
   const setHunger = useBakuStore((state) => state.setHunger);
   const setLastFed = useBakuStore((state) => state.setLastFed);
   const localMemories = useBakuStore((state) => state.memories); 
 
 
-  //   // 🔐 ログインユーザー取得
+  // 満腹度の自動更新 (重複していたので、後続のより包括的な useEffect に一本化しました)
   // useEffect(() => {
-  //   async function load() {
-  //     const {
-  //       data: { session },
-  //     } = await supabase.auth.getSession();
+  //   // 初回ロード時に更新
+  //   updateHunger();
 
-  //     setUserId(session?.user.id ?? null);
-  //   }
-  //   load();
-  // }, []);
-  
-  //   // ⭐ アプリ初回ロード時：ゲストでもログインユーザーでも 1 回だけ表示
-  // useEffect(() => {
-  //   const sessionKey = "highlight_shown_session";
-  //   const hasShown = sessionStorage.getItem(sessionKey) === "true";
+  //   // 1分ごとに更新
+  //   const interval = setInterval(() => {
+  //     updateHunger();
+  //   }, 60 * 1000); // 60秒 = 1分
 
-  //   if (!hasShown) {
-  //     setShowHighlight(true);
-  //   }
-  // }, []);
-
-  // 満腹度の自動更新
-  useEffect(() => {
-    // 初回ロード時に更新
-    updateHunger();
-
-    // 1分ごとに更新
-    const interval = setInterval(() => {
-      updateHunger();
-    }, 60 * 1000); // 60秒 = 1分
-
-    return () => clearInterval(interval);
-  }, [updateHunger]);
+  //   return () => clearInterval(interval);
+  // }, [updateHunger]);
 
   // 【統合済み】認証チェック、ユーザー/IDの設定、初回モーダル表示チェック
   useEffect(() => {
@@ -431,4 +411,10 @@ export default function HibiLogApp() {
       {process.env.NODE_ENV === "development" && <HungerDebugPanel />}
     </>
   );
+}
+
+
+// 最終的なエクスポート
+export default function Page() {
+  return <HibiLogApp />;
 }

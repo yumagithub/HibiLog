@@ -1,0 +1,9 @@
+# Supabase Edge Functions Cron Configuration
+# This file configures scheduled execution of Edge Functions on Supabase Platform
+# Note: Cron jobs only work in production (Supabase Platform), not in local development
+
+# Run hunger-check function every hour
+- name: "hourly-hunger-check"
+  schedule: "0 * * * *" # Every hour at minute 0
+  function: "hunger-check"
+  method: "POST"

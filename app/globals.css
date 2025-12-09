@@ -430,3 +430,13 @@
 .animate-baku-pulse {
   animation: bakuPulse 1s ease-in-out infinite;
 }
+
+/* Recharts: クリック時のフォーカス枠を削除 */
+.recharts-wrapper svg:focus,
+.recharts-surface:focus,
+.recharts-pie:focus,
+.recharts-sector:focus,
+.recharts-bar:focus,
+.recharts-radar:focus {
+  outline: none !important;
+}

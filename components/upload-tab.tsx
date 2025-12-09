@@ -167,6 +167,36 @@ export function UploadTab({ user }: { user: User | null }) {
         );
       }
 
+      // 感情分析APIを呼び出し
+      let emotionScore: number | null = null;
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000); // 2秒タイムアウト
+
+        const emotionResponse = await fetch(
+          "https://api.hyunwoo-api.com/emotion",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              emoji: selectedMood.label,
+              sample: textContent || selectedMood.label,
+            }),
+            signal: controller.signal,
+          }
+        );
+        clearTimeout(timeoutId);
+
+        const emotionData = await emotionResponse.json();
+        emotionScore = emotionData.combined_score_100;
+        console.log("Emotion score from API:", emotionScore);
+      } catch (error) {
+        console.warn("Failed to analyze emotion, using default score:", error);
+        // APIが応答しない場合はデフォルトスコアを使用
+        emotionScore = selectedMood.defaultScore;
+        console.log("Using default emotion score:", emotionScore);
+      }
+
       const { error: insertError } = await supabase.from("memories").insert({
         user_id: user.id,
         memory_date: memoryDate,
@@ -177,6 +207,7 @@ export function UploadTab({ user }: { user: User | null }) {
         mood_category: selectedMood.category,
         latitude: parsedLatitude,
         longitude: parsedLongitude,
+        emotion_score: emotionScore,
       });
 
       if (insertError) {
@@ -324,10 +355,12 @@ export function UploadTab({ user }: { user: User | null }) {
 
         {file && file.type.startsWith("image/") && (
           <div className="relative rounded-xl overflow-hidden bg-muted aspect-3/4">
-            <img
+            <Image
               src={URL.createObjectURL(file)}
               alt="選択した画像"
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
         )}
@@ -458,13 +491,7 @@ export function UploadTab({ user }: { user: User | null }) {
                           ease: "easeOut",
                         }}
                       >
-                        <Image
-                          src={mood.emoji}
-                          alt={mood.label}
-                          width={48}
-                          height={48}
-                          className="w-12 h-12"
-                        />
+                        <span className="text-5xl">{mood.emoji}</span>
                       </motion.span>
                       <span className="text-xs">{mood.label}</span>
                       {isSelected && (

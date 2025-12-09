@@ -3,19 +3,31 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useBakuStore, type ActiveView } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { Upload, BookHeart, Settings, Atom } from "lucide-react";
+import {
+  Upload,
+  BookHeart,
+  Settings,
+  Atom,
+  BarChart3,
+  User,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-const navItems: { view: ActiveView; label: string; icon: React.ElementType }[] =
-  [
-    { view: "upload", label: "投稿する", icon: Upload },
-    { view: "memories", label: "思い出を見る", icon: BookHeart },
-    { view: "settings", label: "設定", icon: Settings },
-  ];
+const navItems: Array<{ view: ActiveView; label: string; icon: LucideIcon }> = [
+  { view: "upload", label: "投稿する", icon: Upload },
+  { view: "memories", label: "思い出を見る", icon: BookHeart },
+  { view: "settings", label: "設定", icon: Settings },
+];
+
+const externalNavItems = [
+  { path: "/stats", label: "統計", icon: BarChart3 },
+  { path: "/account", label: "アカウント", icon: User },
+];
 
 export function SidebarNav() {
   const router = useRouter();
   const pathname = usePathname();
-  const { activeView, setActiveView } = useBakuStore();
+  const { activeView, setActiveView, hunger } = useBakuStore();
 
   const handleNavClick = (view: ActiveView) => {
     // 投稿タブの場合は、カメラページに遷移
@@ -40,6 +52,22 @@ export function SidebarNav() {
         <h1 className="text-2xl font-bold text-foreground">HibiLog</h1>
       </div>
 
+      {/* 空腹度表示 */}
+      <div className="px-2 mb-2">
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-xs text-gray-600">
+            <span>満腹度</span>
+            <span className="font-medium">{Math.round(hunger)}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-1.5">
+            <div
+              className="bg-linear-to-r from-green-400 to-blue-500 h-1.5 rounded-full transition-all duration-500"
+              style={{ width: `${hunger}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
       <nav className="flex flex-col gap-2">
         {navItems.map((item) => {
           const isActive = pathname === "/" && activeView === item.view;
@@ -52,7 +80,25 @@ export function SidebarNav() {
                 isActive && "clay-button text-primary font-semibold"
               )}
             >
-              <item.icon className="h-5 w-5" />
+              {<item.icon className="h-5 w-5" />}
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+
+        {/* 外部ページへのナビゲーション */}
+        {externalNavItems.map((item) => {
+          const isActive = pathname === item.path;
+          return (
+            <button
+              key={item.path}
+              onClick={() => router.push(item.path)}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                isActive && "clay-button text-primary font-semibold"
+              )}
+            >
+              {<item.icon className="h-5 w-5" />}
               <span>{item.label}</span>
             </button>
           );

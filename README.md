@@ -145,6 +145,21 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 # Local: http://localhost:3000
 # Production: https://your-domain.vercel.app
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+
+# Web Push Notifications (VAPID keys)
+# Generate VAPID keys using: npx web-push generate-vapid-keys
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_vapid_public_key
+VAPID_PRIVATE_KEY=your_vapid_private_key
+ADMIN_EMAIL=admin@example.com
+```
+
+**VAPID 鍵の生成方法：**
+
+```bash
+# VAPIDキーペアを生成
+npx web-push generate-vapid-keys
+
+# 出力された公開鍵と秘密鍵を環境変数に設定
 ```
 
 **本番環境（Vercel）の設定：**
@@ -153,6 +168,10 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 2. `NEXT_PUBLIC_SITE_URL` を本番ドメイン（例：`https://your-app.vercel.app`）に設定
 3. Supabase ダッシュボードの Authentication > URL Configuration で Redirect URLs に本番ドメインを追加：
    - `https://your-app.vercel.app/auth/callback`
+4. Supabase Edge Functions 用の環境変数を設定（プロジェクト設定 > Edge Functions > Secrets）：
+   - `VAPID_PUBLIC_KEY`: Web Push 用の公開鍵
+   - `VAPID_PRIVATE_KEY`: Web Push 用の秘密鍵
+   - `ADMIN_EMAIL`: 管理者メールアドレス
 
 ### 4. Supabase プロジェクトのセットアップ
 

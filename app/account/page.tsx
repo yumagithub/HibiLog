@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -193,15 +194,19 @@ export default function AccountPage() {
                         </div>
                       )}
                       {user.user_metadata.avatar_url && (
-                        <div>
+                        <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">
                             アバター:{" "}
                           </span>
-                          <img
-                            src={user.user_metadata.avatar_url}
-                            alt="Avatar"
-                            className="w-12 h-12 rounded-full inline-block ml-2"
-                          />
+                          <div className="relative w-12 h-12 rounded-full overflow-hidden">
+                            <Image
+                              src={user.user_metadata.avatar_url}
+                              alt="Avatar"
+                              fill
+                              className="object-cover"
+                              sizes="48px"
+                            />
+                          </div>
                         </div>
                       )}
                     </div>

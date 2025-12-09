@@ -1,0 +1,15 @@
+name: hunger-check-cron
+
+on:
+  schedule:
+    - cron: "0 * * * *" # 毎時0分（UTC）
+  workflow_dispatch:
+
+jobs:
+  hunger_check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call hunger-check API
+        run: |
+          curl -X POST "https://hibi-log.vercel.app/api/cron/hunger-check" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

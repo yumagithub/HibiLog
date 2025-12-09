@@ -9,7 +9,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X, Calendar, FileText, MapPin } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Calendar,
+  FileText,
+  MapPin,
+} from "lucide-react";
 import type { Memory } from "./memories-tab";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -45,7 +52,8 @@ export function MemoryDetailModal({
   const hasNext = currentIndex < memories.length - 1;
 
   // 【追加】位置情報が存在するかチェックするヘルパー関数
-  const hasLocation = currentMemory.latitude !== null && currentMemory.longitude !== null;
+  const hasLocation =
+    currentMemory.latitude !== null && currentMemory.longitude !== null;
 
   const goToPrevious = () => {
     if (hasPrevious) {
@@ -258,7 +266,7 @@ export function MemoryDetailModal({
                     {/* 【追加】位置情報表示ブロック */}
                     {hasLocation && (
                       <div className="flex items-start gap-2 text-sm text-muted-foreground pt-1">
-                        <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                        <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
                         <div className="space-y-1">
                           <p className="font-medium text-foreground">
                             {currentMemory.location_name || "位置情報"}
@@ -315,10 +323,12 @@ export function MemoryDetailModal({
                         transition={{ type: "spring", stiffness: 300 }}
                       >
                         {mem.media_url && (
-                          <img
+                          <Image
                             src={mem.media_url}
                             alt=""
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
+                            sizes="80px"
                           />
                         )}
                       </motion.button>
