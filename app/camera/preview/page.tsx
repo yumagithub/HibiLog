@@ -17,6 +17,7 @@ import { useBakuStore } from "@/lib/store";
 import { MOOD_OPTIONS, type MoodOption } from "@/lib/mood-emojis";
 import { motion, AnimatePresence } from "framer-motion";
 import type { GeolocationData } from "@/lib/types";
+import { unlockAchievementsForUser } from "@/lib/achievements/unlockAchievements";
 
 export default function CameraPreviewPage() {
   const supabase = createClient();
@@ -235,6 +236,7 @@ export default function CameraPreviewPage() {
         );
       }
 
+      await unlockAchievementsForUser(user.id);
       // 4. バクの空腹度を回復させる
       try {
         const { data: profile, error: profileError } = await supabase
