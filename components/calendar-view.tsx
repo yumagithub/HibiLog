@@ -179,13 +179,15 @@ export function CalendarView({ memories, onDateClick }: CalendarViewProps) {
                     {/* 背景画像 */}
                     {hasMemories && dayMemories[0].media_url && (
                       <div className="absolute inset-0">
-                        <Image
-                          src={dayMemories[0].media_url}
-                          alt={`${dateKey}の思い出`}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 50px, 80px"
-                        />
+                        <div className="relative w-full h-full">
+                          <Image
+                            src={dayMemories[0].media_url}
+                            alt={`${dateKey}の思い出`}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 50px, 80px"
+                          />
+                        </div>
                         {/* オーバーレイ */}
                         <div className="absolute inset-0 bg-black/30" />
                       </div>
