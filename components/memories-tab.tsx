@@ -277,7 +277,17 @@ export function MemoriesTab({ user }: { user: User | null }) {
                 onClick={() => setIsMoodDropdownOpen((v) => !v)}
               >
                 {selectedMood ? (
-                  <span className="text-xl">{selectedMood.emoji}</span>
+                  selectedMood.emoji.startsWith("/") ? (
+                    <Image
+                      src={selectedMood.emoji}
+                      alt={selectedMood.label}
+                      width={24}
+                      height={24}
+                      className="w-6 h-6"
+                    />
+                  ) : (
+                    <span className="text-xl">{selectedMood.emoji}</span>
+                  )
                 ) : (
                   <span className="text-xs">感情</span>
                 )}
@@ -294,7 +304,17 @@ export function MemoriesTab({ user }: { user: User | null }) {
                         setIsMoodDropdownOpen(false);
                       }}
                     >
-                      <span className="text-lg">{mood.emoji}</span>
+                      {mood.emoji.startsWith("/") ? (
+                        <Image
+                          src={mood.emoji}
+                          alt={mood.label}
+                          width={20}
+                          height={20}
+                          className="w-5 h-5"
+                        />
+                      ) : (
+                        <span className="text-lg">{mood.emoji}</span>
+                      )}
                       <span className="text-xs">{mood.label}</span>
                     </button>
                   ))}
@@ -329,14 +349,16 @@ export function MemoriesTab({ user }: { user: User | null }) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.07 }}
                 >
-                  {memory.media_url && (
-                    <motion.img
-                      src={memory.media_url}
-                      alt="memory"
-                      className="absolute w-full h-full object-cover"
-                      whileHover={{ scale: 1.1 }}
-                    />
-                  )}
+                  <div className="relative w-full h-full">
+                    {memory.media_url && (
+                      <motion.img
+                        src={memory.media_url}
+                        alt="memory"
+                        className="absolute w-full h-full object-cover"
+                        whileHover={{ scale: 1.1 }}
+                      />
+                    )}
+                  </div>
 
                   {/* Mood Emoji Badge */}
                   {memory.mood_emoji && (
@@ -356,7 +378,17 @@ export function MemoriesTab({ user }: { user: User | null }) {
                         transition: { duration: 0.5 },
                       }}
                     >
-                      <span className="text-2xl">{memory.mood_emoji}</span>
+                      {memory.mood_emoji.startsWith("/") ? (
+                        <Image
+                          src={memory.mood_emoji}
+                          alt="Mood"
+                          width={24}
+                          height={24}
+                          className="w-6 h-6"
+                        />
+                      ) : (
+                        <span className="text-2xl">{memory.mood_emoji}</span>
+                      )}
                     </motion.div>
                   )}
 

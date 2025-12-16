@@ -5,8 +5,8 @@ import Image from "next/image";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -77,147 +77,101 @@ export function MemoryDetailModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-4xl w-full h-[90vh] p-0 gap-0 overflow-hidden"
+        className="max-w-4xl w-full max-h-[90vh] p-0 gap-0 overflow-hidden flex flex-col"
         onKeyDown={handleKeyDown}
+        aria-describedby="memory-description"
+        style={{ display: "flex", flexDirection: "column", maxHeight: "90vh" }}
       >
         {/* アクセシビリティ用の非表示タイトル */}
         <DialogTitle className="sr-only">
           思い出の詳細 - {currentMemory?.memory_date}
         </DialogTitle>
+        <DialogDescription id="memory-description" className="sr-only">
+          {currentMemory?.text_content || "思い出の画像と詳細情報"}
+        </DialogDescription>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+        {/* 閉じるボタン */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 right-4 z-50 bg-black/50 hover:bg-black/70 text-white rounded-full"
+          onClick={onClose}
         >
-          {/* 閉じるボタン */}
-          <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+          <X className="h-5 w-5" />
+        </Button>
+
+        {/* ナビゲーションボタン - 前へ */}
+        {hasPrevious && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white rounded-full"
+            onClick={goToPrevious}
           >
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-4 right-4 z-50 bg-black/50 hover:bg-black/70 text-white rounded-full"
-              onClick={onClose}
-              asChild
-            >
-              <motion.button
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <X className="h-5 w-5" />
-              </motion.button>
-            </Button>
-          </motion.div>
+            <ChevronLeft className="h-6 w-6" />
+          </Button>
+        )}
 
-          {/* ナビゲーションボタン - 前へ */}
-          <AnimatePresence>
-            {hasPrevious && (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white rounded-full"
-                  onClick={goToPrevious}
-                  asChild
-                >
-                  <motion.button
-                    whileHover={{ scale: 1.1, x: -5 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <ChevronLeft className="h-6 w-6" />
-                  </motion.button>
-                </Button>
-              </motion.div>
+        {/* ナビゲーションボタン - 次へ */}
+        {hasNext && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white rounded-full"
+            onClick={goToNext}
+          >
+            <ChevronRight className="h-6 w-6" />
+          </Button>
+        )}
+
+        <div className="flex flex-col flex-1 w-full overflow-hidden">
+          {/* 画像表示エリア */}
+          <div
+            className="bg-black relative flex items-center justify-center w-full"
+            style={{
+              height: "clamp(200px, 50vh, 500px)",
+              flexShrink: 0,
+            }}
+          >
+            {currentMemory.media_url ? (
+              <img
+                key={currentMemory.id}
+                src={currentMemory.media_url}
+                alt={currentMemory.text_content || "Memory"}
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "100%",
+                  width: "auto",
+                  height: "auto",
+                }}
+              />
+            ) : (
+              <div className="text-white text-center">画像がありません</div>
             )}
-          </AnimatePresence>
+          </div>
 
-          {/* ナビゲーションボタン - 次へ */}
-          <AnimatePresence>
-            {hasNext && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white rounded-full"
-                  onClick={goToNext}
-                  asChild
-                >
-                  <motion.button
-                    whileHover={{ scale: 1.1, x: 5 }}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <ChevronRight className="h-6 w-6" />
-                  </motion.button>
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="flex flex-col h-full">
-            {/* 画像表示エリア */}
-            <div className="flex-1 bg-black relative flex items-center justify-center overflow-hidden">
-              <AnimatePresence mode="wait">
-                {currentMemory.media_url && (
-                  <motion.img
-                    key={currentMemory.id}
-                    src={currentMemory.media_url}
-                    alt={currentMemory.text_content || "Memory"}
-                    className="max-w-full max-h-full w-auto h-auto object-contain mx-auto"
-                    initial={{ opacity: 0, scale: 0.9, rotateY: 90 }}
-                    animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, rotateY: -90 }}
-                    transition={{
-                      duration: 0.5,
-                      type: "spring",
-                      stiffness: 100,
-                      damping: 15,
-                    }}
-                    layoutId={`memory-image-${currentMemory.id}`}
-                  />
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* 詳細情報エリア */}
-            <motion.div
-              className="bg-white p-6 space-y-4 max-h-[40%] overflow-y-auto"
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, type: "spring", stiffness: 100 }}
-            >
+          {/* 詳細情報エリア */}
+          <div className="flex-1 bg-white overflow-y-auto flex flex-col min-h-0">
+            <div className="p-6 space-y-4">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentMemory.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
                 >
                   {/* 気分の絵文字 */}
                   {currentMemory.mood_emoji && (
                     <motion.div
-                      className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
-                      whileHover={{ scale: 1.02 }}
+                      className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg"
+                      whileHover={{ scale: 1.05 }}
                       transition={{ type: "spring", stiffness: 300 }}
                     >
                       <motion.span
-                        className="flex items-center justify-center"
+                        className="flex items-center justify-center flex-shrink-0"
                         animate={{
-                          rotate: [0, 10, -10, 0],
+                          rotate: [0, 8, -8, 0],
                         }}
                         transition={{
                           duration: 2,
@@ -229,18 +183,20 @@ export function MemoryDetailModal({
                           <Image
                             src={currentMemory.mood_emoji}
                             alt="mood"
-                            width={64}
-                            height={64}
-                            className="w-16 h-16"
+                            width={32}
+                            height={32}
+                            className="w-8 h-8"
                           />
                         ) : (
-                          <span className="text-4xl">
+                          <span className="text-2xl">
                             {currentMemory.mood_emoji}
                           </span>
                         )}
                       </motion.span>
-                      <div className="text-sm text-muted-foreground">
-                        この日の気分
+                      <div className="text-xs text-muted-foreground whitespace-nowrap">
+                        {currentMemory.mood_emoji.startsWith("/")
+                          ? "この日の気分"
+                          : "この日の気分"}
                       </div>
                     </motion.div>
                   )}
@@ -296,33 +252,27 @@ export function MemoryDetailModal({
                   )}
                 </motion.div>
               </AnimatePresence>
+            </div>
 
-              {/* サムネイル一覧 */}
-              {memories.length > 1 && (
-                <div className="pt-4 border-t">
-                  <p className="text-xs text-muted-foreground mb-2">
-                    {currentIndex + 1} / {memories.length}
-                  </p>
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {memories.map((mem, index) => (
-                      <motion.button
-                        key={mem.id}
-                        onClick={() => setCurrentIndex(index)}
-                        className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
-                          index === currentIndex
-                            ? "border-primary"
-                            : "border-transparent opacity-60"
-                        }`}
-                        whileHover={{ scale: 1.1, opacity: 1 }}
-                        whileTap={{ scale: 0.95 }}
-                        animate={
-                          index === currentIndex
-                            ? { scale: 1.1, opacity: 1 }
-                            : { scale: 1, opacity: 0.6 }
-                        }
-                        transition={{ type: "spring", stiffness: 300 }}
-                      >
-                        {mem.media_url && (
+            {/* サムネイル一覧 */}
+            {memories.length > 1 && (
+              <div className="border-t bg-white px-6 py-3">
+                <p className="text-xs text-muted-foreground mb-2">
+                  {currentIndex + 1} / {memories.length}
+                </p>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {memories.map((mem, index) => (
+                    <button
+                      key={mem.id}
+                      onClick={() => setCurrentIndex(index)}
+                      className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                        index === currentIndex
+                          ? "border-primary scale-110"
+                          : "border-transparent opacity-60 hover:opacity-100"
+                      }`}
+                    >
+                      {mem.media_url && (
+                        <div className="relative w-full h-full">
                           <Image
                             src={mem.media_url}
                             alt=""
@@ -330,15 +280,15 @@ export function MemoryDetailModal({
                             className="object-cover"
                             sizes="80px"
                           />
-                        )}
-                      </motion.button>
-                    ))}
-                  </div>
+                        </div>
+                      )}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </motion.div>
+              </div>
+            )}
           </div>
-        </motion.div>
+        </div>
       </DialogContent>
     </Dialog>
   );
