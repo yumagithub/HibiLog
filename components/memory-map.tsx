@@ -143,6 +143,26 @@ export function MemoryMap({ userId }: MemoryMapProps) {
     mapRef.current.setZoom(13);
   };
 
+  const goToCurrentLocation = () => {
+    if (!navigator.geolocation || !mapRef.current) {
+      alert("現在地取得が利用できません");
+      return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const center = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        mapRef.current!.panTo(center);
+        mapRef.current!.setZoom(15);
+      },
+      (error) => {
+        console.error("現在地取得エラー:", error);
+        alert("現在地を取得できませんでした。HTTPSや位置情報の権限を確認してください。");
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  };
+
   useEffect(() => {
     if (isLoaded && mapRef.current && markers.length) {
       fitToMarkers();
@@ -274,6 +294,13 @@ export function MemoryMap({ userId }: MemoryMapProps) {
           </div>
 
           <div className="pointer-events-auto flex gap-2">
+            <button
+              onClick={goToCurrentLocation}
+              className="rounded-md bg-white/85 backdrop-blur px-3 py-2 text-xs font-semibold text-gray-800 shadow hover:bg-white"
+              title="現在地にジャンプ"
+            >
+              📍 現在地へ
+            </button>
             <button
               onClick={fitToMarkers}
               className="rounded-md bg-white/85 backdrop-blur px-3 py-2 text-xs font-semibold text-gray-800 shadow hover:bg-white"
