@@ -51,6 +51,9 @@ export function useStreaksCalculator(user: User | null) {
       loadStreaks();
     };
 
+    // イベントリスナー登録
+    window.addEventListener("memoryAdded", handleMemoryAdded);
+
     return () => {
       window.removeEventListener("memoryAdded", handleMemoryAdded);
     };

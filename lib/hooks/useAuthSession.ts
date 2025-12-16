@@ -7,9 +7,12 @@ import { createClient } from "@/lib/supabase/client";
 
 export function useAuthSession() {
   const [user, setUser] = useState<User | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
   const router = useRouter();
+  const sessionKey = "highlight_shown_session";
+  const [showHighlight, setShowHighlight] = useState(false);
 
   // 認証チェックとセッション監視ロジック
   useEffect(() => {
@@ -28,6 +31,7 @@ export function useAuthSession() {
 
       // ログインユーザーの場合
       setUser(session.user);
+      setUserId(session.user.id);
 
       // public.usersテーブルにユーザーが存在するか確認、なければ作成
       const { data: existingUser, error: checkError } = await supabase
@@ -53,6 +57,11 @@ export function useAuthSession() {
       }
 
       setLoading(false);
+
+      const hasShownThisSession = sessionStorage.getItem(sessionKey) === "true";
+      if (!hasShownThisSession) {
+        setShowHighlight(true);
+      }
     };
 
     checkUser();
@@ -61,9 +70,11 @@ export function useAuthSession() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
-        router.push("/login");
+        setUser(null);
+        setUserId(null);
       } else if (session) {
         setUser(session.user);
+        setUserId(session.user.id);
       }
     });
 
@@ -71,11 +82,22 @@ export function useAuthSession() {
   }, [supabase, router]);
 
   const handleLogout = async () => {
+    try {
+      sessionStorage.removeItem(sessionKey);
+    } catch (e) {
+      console.warn("セッションストレージのクリアに失敗しました。", e);
+    }
+
     if (user) {
       await supabase.auth.signOut();
     }
     router.push("/login");
   };
 
-  return { user, loading, handleLogout };
+  const closeHighlight = () => {
+    setShowHighlight(false);
+    sessionStorage.setItem(sessionKey, "true");
+  };
+
+  return { user, userId, loading, handleLogout, showHighlight, closeHighlight };
 }

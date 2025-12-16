@@ -18,9 +18,6 @@ import { MOOD_OPTIONS, type MoodOption } from "@/lib/mood-emojis";
 import { motion, AnimatePresence } from "framer-motion";
 import type { GeolocationData } from "@/lib/types";
 
-
-
-
 export default function CameraPreviewPage() {
   const supabase = createClient();
   const router = useRouter();
@@ -62,9 +59,12 @@ export default function CameraPreviewPage() {
     }
     //sessionStorageから位置情報を取得しStateに設定
     const storedLocation = sessionStorage.getItem("camera:location");
+    console.log("📍 sessionStorageから取得した位置情報:", storedLocation);
     if (storedLocation) {
       try {
-        setLocation(JSON.parse(storedLocation));
+        const parsedLocation = JSON.parse(storedLocation);
+        console.log("📍 パース後の位置情報:", parsedLocation);
+        setLocation(parsedLocation);
       } catch (e) {
         console.error("Failed to parse location data:", e);
         setLocation(null);
@@ -99,6 +99,9 @@ export default function CameraPreviewPage() {
     const lat = location?.latitude || null;
     const lng = location?.longitude || null;
 
+    // デバッグ: 位置情報の値を確認
+    console.log("📍 保存する位置情報:", { lat, lng, location });
+
     try {
       // ゲストモード: LocalStorageのみに保存
       if (!user) {
@@ -111,7 +114,7 @@ export default function CameraPreviewPage() {
           moodCategory: selectedMood.category,
           textContent: textContent || undefined,
           // 【修正開始】位置情報を addMemory に渡す
-          latitude: lat, 
+          latitude: lat,
           longitude: lng,
         });
 
@@ -203,6 +206,14 @@ export default function CameraPreviewPage() {
       }
 
       // 4. データベースのmemoriesテーブルにレコードを挿入（絵文字と感情スコアを含む）
+      console.log("📝 DB挿入データ:", {
+        user_id: user.id,
+        memory_date: memoryDate,
+        latitude: lat,
+        longitude: lng,
+        emotion_score: emotionScore,
+      });
+
       const { error: insertError } = await supabase.from("memories").insert({
         user_id: user.id,
         memory_date: memoryDate,
@@ -270,7 +281,7 @@ export default function CameraPreviewPage() {
       // sessionStorageをクリア
       sessionStorage.removeItem("camera:lastShot");
       sessionStorage.removeItem("camera:location"); // 位置情報もクリア
-      
+
       // 少し待ってからホームに戻る
       setTimeout(() => {
         router.push("/");
@@ -353,9 +364,10 @@ export default function CameraPreviewPage() {
 
               {/* 位置情報入力フィールド */}
               {location && (
-              <div className="text-sm text-gray-600">
-                📍 {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
-              </div>
+                <div className="text-sm text-gray-600">
+                  📍 {location.latitude.toFixed(6)},{" "}
+                  {location.longitude.toFixed(6)}
+                </div>
               )}
 
               {/* 感情選択 */}
