@@ -3,7 +3,14 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useBakuStore, type ActiveView } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { Upload, BookHeart, Settings, BarChart3, User } from "lucide-react";
+import {
+  Upload,
+  BookHeart,
+  Settings,
+  BarChart3,
+  User,
+  MapPin,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 const navItems: Array<{ view: ActiveView; label: string; icon: LucideIcon }> = [
@@ -13,6 +20,7 @@ const navItems: Array<{ view: ActiveView; label: string; icon: LucideIcon }> = [
 ];
 
 const externalNavItems = [
+  { path: "/map", label: "マップ", icon: MapPin },
   { path: "/stats", label: "統計", icon: BarChart3 },
   { path: "/account", label: "アカウント", icon: User },
 ];
@@ -39,7 +47,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-20 border-t clay-card bg-white/70 md:hidden">
-      <div className="grid h-full grid-cols-5 max-w-md mx-auto">
+      <div className="grid h-full grid-cols-6 max-w-md mx-auto">
         {navItems.map((item) => {
           const isActive = pathname === "/" && activeView === item.view;
           return (

@@ -10,6 +10,7 @@ import {
   Atom,
   BarChart3,
   User,
+  MapPin,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -20,6 +21,7 @@ const navItems: Array<{ view: ActiveView; label: string; icon: LucideIcon }> = [
 ];
 
 const externalNavItems = [
+  { path: "/map", label: "マップ", icon: MapPin },
   { path: "/stats", label: "統計", icon: BarChart3 },
   { path: "/account", label: "アカウント", icon: User },
 ];

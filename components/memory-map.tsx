@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   GoogleMap,
   Marker,
@@ -13,7 +13,7 @@ import Image from "next/image";
 
 const mapContainerStyle = {
   width: "100%",
-  height: "600px",
+  height: "70vh",
 };
 
 const defaultCenter = {
@@ -48,6 +48,7 @@ export function MemoryMap({ userId }: MemoryMapProps) {
   );
   const [mapCenter, setMapCenter] = useState(defaultCenter);
   const [loading, setLoading] = useState(true);
+  const mapRef = useRef<google.maps.Map | null>(null);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
@@ -97,12 +98,24 @@ export function MemoryMap({ userId }: MemoryMapProps) {
     }
   };
 
-  // 絵文字をマーカーアイコンに変換
+  // 絵文字もしくはPNGパスをマーカーアイコンに変換
   const createEmojiIcon = (emoji: string) => {
     const g = typeof window !== "undefined" ? (window as any).google : null;
 
     if (!g?.maps) return undefined;
 
+    // /like.png のようなパスが来た場合は画像アイコンとして扱う
+    if (emoji.startsWith("/")) {
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "";
+      return {
+        url: `${origin}${emoji}`,
+        scaledSize: new g.maps.Size(40, 40),
+        anchor: new g.maps.Point(20, 20),
+      };
+    }
+
+    // 通常の絵文字はSVGでレンダリング
     return {
       url: `data:image/svg+xml,${encodeURIComponent(
         `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
@@ -114,6 +127,28 @@ export function MemoryMap({ userId }: MemoryMapProps) {
       anchor: new g.maps.Point(20, 20),
     };
   };
+
+  const fitToMarkers = () => {
+    if (!mapRef.current || markers.length === 0) return;
+    const g = (window as any).google;
+    if (!g?.maps) return;
+    const bounds = new g.maps.LatLngBounds();
+    markers.forEach((m) => bounds.extend(m.position));
+    mapRef.current.fitBounds(bounds, 80);
+  };
+
+  const resetToDefault = () => {
+    if (!mapRef.current) return;
+    mapRef.current.panTo(mapCenter || defaultCenter);
+    mapRef.current.setZoom(13);
+  };
+
+  useEffect(() => {
+    if (isLoaded && mapRef.current && markers.length) {
+      fitToMarkers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, markers.length]);
 
   if (loading) {
     return (
@@ -144,68 +179,116 @@ export function MemoryMap({ userId }: MemoryMapProps) {
   }
 
   return (
-    <GoogleMap
-      mapContainerStyle={mapContainerStyle}
-      center={mapCenter}
-      zoom={13}
-      options={mapOptions}
-    >
-      {/* マーカーを表示 */}
-      {markers.map((marker) => (
-        <Marker
-          key={marker.id}
-          position={marker.position}
-          onClick={() => setSelectedMarker(marker)}
-          icon={
-            marker.moodEmoji && isLoaded
-              ? createEmojiIcon(marker.moodEmoji)
-              : undefined
+    <div className="relative rounded-xl overflow-hidden">
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
+        center={mapCenter}
+        zoom={13}
+        options={mapOptions}
+        onLoad={(map) => {
+          mapRef.current = map;
+          if (markers.length) {
+            fitToMarkers();
           }
-          title={marker.title}
-        />
-      ))}
+        }}
+        onUnmount={() => {
+          mapRef.current = null;
+        }}
+      >
+        {/* マーカーを表示 */}
+        {markers.map((marker) => (
+          <Marker
+            key={marker.id}
+            position={marker.position}
+            onClick={() => {
+              setSelectedMarker(marker);
+              if (mapRef.current) {
+                mapRef.current.panTo(marker.position);
+              }
+            }}
+            icon={
+              marker.moodEmoji && isLoaded
+                ? createEmojiIcon(marker.moodEmoji)
+                : undefined
+            }
+            title={marker.title}
+          />
+        ))}
 
-      {/* 情報ウィンドウ */}
-      {selectedMarker && (
-        <InfoWindow
-          position={selectedMarker.position}
-          onCloseClick={() => setSelectedMarker(null)}
-        >
-          <div className="p-2 max-w-xs">
-            {/* 画像 */}
-            {selectedMarker.imageUrl && (
-              <div className="relative w-full h-40 mb-2">
-                <Image
-                  src={selectedMarker.imageUrl}
-                  alt={selectedMarker.title}
-                  fill
-                  className="object-cover rounded-lg"
-                />
-              </div>
-            )}
-
-            {/* タイトル */}
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              {selectedMarker.moodEmoji && (
-                <span className="text-2xl">{selectedMarker.moodEmoji}</span>
+        {/* 情報ウィンドウ */}
+        {selectedMarker && (
+          <InfoWindow
+            position={selectedMarker.position}
+            onCloseClick={() => setSelectedMarker(null)}
+          >
+            <div className="p-2 max-w-xs">
+              {/* 画像 */}
+              {selectedMarker.imageUrl && (
+                <div className="relative w-full h-40 mb-2">
+                  <Image
+                    src={selectedMarker.imageUrl}
+                    alt={selectedMarker.title}
+                    fill
+                    className="object-cover rounded-lg"
+                  />
+                </div>
               )}
-              {selectedMarker.title}
-            </h3>
 
-            {/* 日付 */}
-            <p className="text-sm text-gray-600 mt-1">
-              📅 {new Date(selectedMarker.date).toLocaleDateString("ja-JP")}
-            </p>
+              {/* タイトル */}
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                {selectedMarker.moodEmoji && (
+                  <span className="text-2xl">{selectedMarker.moodEmoji}</span>
+                )}
+                {selectedMarker.title}
+              </h3>
 
-            {/* テキスト */}
-            {selectedMarker.textContent && (
-              <p className="text-sm text-gray-700 mt-2 line-clamp-3">
-                {selectedMarker.textContent}
+              {/* 日付 */}
+              <p className="text-sm text-gray-600 mt-1">
+                📅 {new Date(selectedMarker.date).toLocaleDateString("ja-JP")}
               </p>
-            )}
+
+              {/* テキスト */}
+              {selectedMarker.textContent && (
+                <p className="text-sm text-gray-700 mt-2 line-clamp-3">
+                  {selectedMarker.textContent}
+                </p>
+              )}
+            </div>
+          </InfoWindow>
+        )}
+      </GoogleMap>
+
+      {/* オーバーレイUI */}
+      <div className="pointer-events-none absolute inset-0 flex flex-col">
+        <div className="flex justify-between items-start p-3 gap-3">
+          <div className="pointer-events-auto bg-white/85 backdrop-blur shadow-md rounded-lg px-3 py-2 text-sm text-gray-700 flex flex-col gap-1">
+            <div className="font-semibold text-gray-900">思い出マップ</div>
+            <div className="flex items-center gap-2 text-xs text-gray-600">
+              <span>📍 {markers.length} 件</span>
+              {markers[0]?.date && (
+                <span>
+                  最終: {new Date(markers[0].date).toLocaleDateString("ja-JP")}
+                </span>
+              )}
+            </div>
           </div>
-        </InfoWindow>
-      )}
-    </GoogleMap>
+
+          <div className="pointer-events-auto flex gap-2">
+            <button
+              onClick={fitToMarkers}
+              className="rounded-md bg-white/85 backdrop-blur px-3 py-2 text-xs font-semibold text-gray-800 shadow hover:bg-white"
+            >
+              全件表示
+            </button>
+            <button
+              onClick={resetToDefault}
+              className="rounded-md bg-white/85 backdrop-blur px-3 py-2 text-xs font-semibold text-gray-800 shadow hover:bg-white"
+            >
+              中心リセット
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
