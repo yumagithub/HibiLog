@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import {
   GoogleMap,
-  LoadScript,
   Marker,
   InfoWindow,
+  useJsApiLoader,
 } from "@react-google-maps/api";
 import { createClient } from "@/lib/supabase/client";
 import type { MemoryMarker } from "@/lib/types";
@@ -48,6 +48,10 @@ export function MemoryMap({ userId }: MemoryMapProps) {
   );
   const [mapCenter, setMapCenter] = useState(defaultCenter);
   const [loading, setLoading] = useState(true);
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
+  });
 
   useEffect(() => {
     fetchMemoriesWithLocation();
@@ -95,6 +99,10 @@ export function MemoryMap({ userId }: MemoryMapProps) {
 
   // 絵文字をマーカーアイコンに変換
   const createEmojiIcon = (emoji: string) => {
+    const g = typeof window !== "undefined" ? (window as any).google : null;
+
+    if (!g?.maps) return undefined;
+
     return {
       url: `data:image/svg+xml,${encodeURIComponent(
         `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
@@ -102,8 +110,8 @@ export function MemoryMap({ userId }: MemoryMapProps) {
           <text x="20" y="28" font-size="20" text-anchor="middle">${emoji}</text>
         </svg>`
       )}`,
-      scaledSize: new google.maps.Size(40, 40),
-      anchor: new google.maps.Point(20, 20),
+      scaledSize: new g.maps.Size(40, 40),
+      anchor: new g.maps.Point(20, 20),
     };
   };
 
@@ -111,6 +119,14 @@ export function MemoryMap({ userId }: MemoryMapProps) {
     return (
       <div className="w-full h-[600px] flex items-center justify-center bg-gray-100 rounded-lg">
         <p className="text-gray-500">マップを読み込み中...</p>
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className="w-full h-[600px] flex items-center justify-center bg-gray-100 rounded-lg">
+        <p className="text-gray-500">Googleマップを初期化しています...</p>
       </div>
     );
   }
@@ -128,68 +144,68 @@ export function MemoryMap({ userId }: MemoryMapProps) {
   }
 
   return (
-    <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
-      <GoogleMap
-        mapContainerStyle={mapContainerStyle}
-        center={mapCenter}
-        zoom={13}
-        options={mapOptions}
-      >
-        {/* マーカーを表示 */}
-        {markers.map((marker) => (
-          <Marker
-            key={marker.id}
-            position={marker.position}
-            onClick={() => setSelectedMarker(marker)}
-            icon={
-              marker.moodEmoji ? createEmojiIcon(marker.moodEmoji) : undefined
-            }
-            title={marker.title}
-          />
-        ))}
+    <GoogleMap
+      mapContainerStyle={mapContainerStyle}
+      center={mapCenter}
+      zoom={13}
+      options={mapOptions}
+    >
+      {/* マーカーを表示 */}
+      {markers.map((marker) => (
+        <Marker
+          key={marker.id}
+          position={marker.position}
+          onClick={() => setSelectedMarker(marker)}
+          icon={
+            marker.moodEmoji && isLoaded
+              ? createEmojiIcon(marker.moodEmoji)
+              : undefined
+          }
+          title={marker.title}
+        />
+      ))}
 
-        {/* 情報ウィンドウ */}
-        {selectedMarker && (
-          <InfoWindow
-            position={selectedMarker.position}
-            onCloseClick={() => setSelectedMarker(null)}
-          >
-            <div className="p-2 max-w-xs">
-              {/* 画像 */}
-              {selectedMarker.imageUrl && (
-                <div className="relative w-full h-40 mb-2">
-                  <Image
-                    src={selectedMarker.imageUrl}
-                    alt={selectedMarker.title}
-                    fill
-                    className="object-cover rounded-lg"
-                  />
-                </div>
+      {/* 情報ウィンドウ */}
+      {selectedMarker && (
+        <InfoWindow
+          position={selectedMarker.position}
+          onCloseClick={() => setSelectedMarker(null)}
+        >
+          <div className="p-2 max-w-xs">
+            {/* 画像 */}
+            {selectedMarker.imageUrl && (
+              <div className="relative w-full h-40 mb-2">
+                <Image
+                  src={selectedMarker.imageUrl}
+                  alt={selectedMarker.title}
+                  fill
+                  className="object-cover rounded-lg"
+                />
+              </div>
+            )}
+
+            {/* タイトル */}
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+              {selectedMarker.moodEmoji && (
+                <span className="text-2xl">{selectedMarker.moodEmoji}</span>
               )}
+              {selectedMarker.title}
+            </h3>
 
-              {/* タイトル */}
-              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                {selectedMarker.moodEmoji && (
-                  <span className="text-2xl">{selectedMarker.moodEmoji}</span>
-                )}
-                {selectedMarker.title}
-              </h3>
+            {/* 日付 */}
+            <p className="text-sm text-gray-600 mt-1">
+              📅 {new Date(selectedMarker.date).toLocaleDateString("ja-JP")}
+            </p>
 
-              {/* 日付 */}
-              <p className="text-sm text-gray-600 mt-1">
-                📅 {new Date(selectedMarker.date).toLocaleDateString("ja-JP")}
+            {/* テキスト */}
+            {selectedMarker.textContent && (
+              <p className="text-sm text-gray-700 mt-2 line-clamp-3">
+                {selectedMarker.textContent}
               </p>
-
-              {/* テキスト */}
-              {selectedMarker.textContent && (
-                <p className="text-sm text-gray-700 mt-2 line-clamp-3">
-                  {selectedMarker.textContent}
-                </p>
-              )}
-            </div>
-          </InfoWindow>
-        )}
-      </GoogleMap>
-    </LoadScript>
+            )}
+          </div>
+        </InfoWindow>
+      )}
+    </GoogleMap>
   );
 }
