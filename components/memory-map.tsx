@@ -148,7 +148,7 @@ export function MemoryMap({ userId }: MemoryMapProps) {
       alert("現在地取得が利用できません");
       return;
     }
-    
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const center = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -157,7 +157,9 @@ export function MemoryMap({ userId }: MemoryMapProps) {
       },
       (error) => {
         console.error("現在地取得エラー:", error);
-        alert("現在地を取得できませんでした。HTTPSや位置情報の権限を確認してください。");
+        alert(
+          "現在地を取得できませんでした。HTTPSや位置情報の権限を確認してください。"
+        );
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
