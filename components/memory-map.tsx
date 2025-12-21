@@ -7,6 +7,7 @@ import {
   InfoWindow,
   useJsApiLoader,
 } from "@react-google-maps/api";
+import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import { createClient } from "@/lib/supabase/client";
 import type { MemoryMarker } from "@/lib/types";
 import Image from "next/image";
@@ -49,6 +50,8 @@ export function MemoryMap({ userId }: MemoryMapProps) {
   const [mapCenter, setMapCenter] = useState(defaultCenter);
   const [loading, setLoading] = useState(true);
   const mapRef = useRef<google.maps.Map | null>(null);
+  const clustererRef = useRef<MarkerClusterer | null>(null);
+  const nativeMarkersRef = useRef<google.maps.Marker[]>([]);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
@@ -148,7 +151,7 @@ export function MemoryMap({ userId }: MemoryMapProps) {
       alert("現在地取得が利用できません");
       return;
     }
-    
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const center = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -157,7 +160,9 @@ export function MemoryMap({ userId }: MemoryMapProps) {
       },
       (error) => {
         console.error("現在地取得エラー:", error);
-        alert("現在地を取得できませんでした。HTTPSや位置情報の権限を確認してください。");
+        alert(
+          "現在地を取得できませんでした。HTTPSや位置情報の権限を確認してください。"
+        );
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
@@ -167,7 +172,6 @@ export function MemoryMap({ userId }: MemoryMapProps) {
     if (isLoaded && mapRef.current && markers.length) {
       fitToMarkers();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, markers.length]);
 
   if (loading) {
@@ -256,9 +260,18 @@ export function MemoryMap({ userId }: MemoryMapProps) {
 
               {/* タイトル */}
               <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                {selectedMarker.moodEmoji && (
-                  <span className="text-2xl">{selectedMarker.moodEmoji}</span>
-                )}
+                {selectedMarker.moodEmoji &&
+                  (selectedMarker.moodEmoji.startsWith("/") ? (
+                    <Image
+                      src={selectedMarker.moodEmoji}
+                      alt="mood"
+                      width={24}
+                      height={24}
+                      className="w-6 h-6"
+                    />
+                  ) : (
+                    <span className="text-2xl">{selectedMarker.moodEmoji}</span>
+                  ))}
                 {selectedMarker.title}
               </h3>
 
