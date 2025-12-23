@@ -1,5 +1,5 @@
 // lib/stats-calculator.ts
-import type { Memory } from "@/components/memories-tab";
+import type { Memory } from "@/components/memory/memories-tab";
 
 export interface StatsData {
   totalMemories: number;

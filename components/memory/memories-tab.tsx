@@ -14,8 +14,8 @@ import {
   MapPin,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
-import { MemoryDetailModal } from "@/components/memory-detail-modal";
-import { CalendarView } from "@/components/calendar-view";
+import { MemoryDetailModal } from "@/components/memory/memory-detail-modal";
+import { CalendarView } from "@/components/memory/calendar-view";
 import { motion } from "framer-motion";
 import { MOOD_OPTIONS, MoodOption } from "@/lib/mood-emojis";
 

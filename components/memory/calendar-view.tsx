@@ -145,7 +145,7 @@ export function CalendarView({ memories, onDateClick }: CalendarViewProps) {
           >
             {calendarDays.map((day, index) => {
               if (day === null) {
-                return <div key={`empty-${index}`} className="aspect-square" />;
+                return <div key={`empty-${index}`} className="aspect-3/4" />;
               }
 
               const dateKey = formatDateKey(currentYear, currentMonth, day);
@@ -158,11 +158,11 @@ export function CalendarView({ memories, onDateClick }: CalendarViewProps) {
               return (
                 <motion.div
                   key={dateKey}
-                  className="aspect-square"
+                  className="aspect-3/4"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: index * 0.01 }}
-                  whileHover={{ scale: 1.05, y: -4 }}
+                  whileHover={{ scale: 1.03, y: -6 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   <button
@@ -170,10 +170,12 @@ export function CalendarView({ memories, onDateClick }: CalendarViewProps) {
                       hasMemories && onDateClick(dateKey, dayMemories)
                     }
                     className={`
-                      w-full h-full rounded-lg relative overflow-hidden
+                      w-full h-full rounded-xl relative overflow-hidden
                       ${hasMemories ? "cursor-pointer" : "cursor-default"}
-                      ${isToday ? "ring-2 ring-primary" : ""}
-                      transition-all
+                      ${
+                        isToday ? "ring-2 ring-primary" : "ring-1 ring-gray-200"
+                      }
+                      transition-all hover:shadow-lg
                     `}
                   >
                     {/* 背景画像 */}
@@ -196,13 +198,13 @@ export function CalendarView({ memories, onDateClick }: CalendarViewProps) {
                     {/* 日付番号 */}
                     <div
                       className={`
-                      absolute top-1 left-1 text-xs font-semibold
+                      absolute top-2 left-2 font-bold
                       ${
                         hasMemories
-                          ? "text-white drop-shadow-md"
-                          : "text-foreground"
+                          ? "text-white text-xl drop-shadow-md"
+                          : "text-foreground text-lg"
                       }
-                      ${!hasMemories && "clay-input bg-white/50 rounded px-1"}
+                      ${!hasMemories && "text-gray-400"}
                     `}
                     >
                       {day}
@@ -211,7 +213,7 @@ export function CalendarView({ memories, onDateClick }: CalendarViewProps) {
                     {/* 絵文字バッジ（右上） */}
                     {hasMemories && dayMemories[0].mood_emoji && (
                       <motion.div
-                        className="absolute top-1 right-1 bg-white/90 backdrop-blur-sm rounded-full w-7 h-7 flex items-center justify-center shadow-md"
+                        className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm rounded-full w-10 h-10 flex items-center justify-center shadow-lg"
                         initial={{ scale: 0, rotate: -180 }}
                         animate={{ scale: 1, rotate: 0 }}
                         transition={{
@@ -221,8 +223,8 @@ export function CalendarView({ memories, onDateClick }: CalendarViewProps) {
                           damping: 10,
                         }}
                         whileHover={{
-                          scale: 1.2,
-                          rotate: 15,
+                          scale: 1.15,
+                          rotate: 12,
                           transition: { duration: 0.2 },
                         }}
                       >
@@ -230,12 +232,12 @@ export function CalendarView({ memories, onDateClick }: CalendarViewProps) {
                           <Image
                             src={dayMemories[0].mood_emoji}
                             alt="mood"
-                            width={20}
-                            height={20}
+                            width={24}
+                            height={24}
                             className="object-contain"
                           />
                         ) : (
-                          <span className="text-sm">
+                          <span className="text-xl">
                             {dayMemories[0].mood_emoji}
                           </span>
                         )}
@@ -244,7 +246,7 @@ export function CalendarView({ memories, onDateClick }: CalendarViewProps) {
 
                     {/* 複数投稿インジケーター */}
                     {dayMemories.length > 1 && (
-                      <div className="absolute bottom-1 right-1 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg">
+                      <div className="absolute bottom-2 right-2 bg-primary text-primary-foreground text-sm rounded-full w-7 h-7 flex items-center justify-center font-bold shadow-lg">
                         {dayMemories.length}
                       </div>
                     )}

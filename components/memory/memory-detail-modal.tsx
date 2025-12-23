@@ -169,7 +169,7 @@ export function MemoryDetailModal({
                       transition={{ type: "spring", stiffness: 300 }}
                     >
                       <motion.span
-                        className="flex items-center justify-center flex-shrink-0"
+                        className="flex items-center justify-center shrink-0"
                         animate={{
                           rotate: [0, 8, -8, 0],
                         }}
