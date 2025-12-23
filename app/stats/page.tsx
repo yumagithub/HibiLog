@@ -35,8 +35,8 @@ import {
   MOOD_LABELS,
   type StatsData,
 } from "@/lib/stats-calculator";
-import type { Memory } from "@/components/memories-tab";
-import { MemoryHeatmap } from "@/components/memory-heatmap";
+import type { Memory } from "@/components/memory/memories-tab";
+import { MemoryHeatmap } from "@/components/memory/memory-heatmap";
 
 export default function StatsPage() {
   const router = useRouter();

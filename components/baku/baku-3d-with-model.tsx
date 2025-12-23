@@ -14,7 +14,7 @@ import { useRef, useEffect, useState, useMemo } from "react";
 import { useBakuStore } from "@/lib/store";
 import type { Group, AnimationAction } from "three";
 import { Vector3, MathUtils } from "three";
-import { GLBAnimationChecker } from "./glb-animation-checker";
+import { GLBAnimationChecker } from "@/components/dev/glb-animation-checker";
 
 type BehaviorState = "Idle" | "Walking";
 
@@ -218,6 +218,7 @@ export function Baku3DWithModel() {
         camera={{ position: [0, 5, 20], fov: 50 }}
         shadows
         frameloop="always"
+        gl={{ preserveDrawingBuffer: true }}
       >
         <ambientLight intensity={0.4} />
         <directionalLight position={[5, 5, 5]} intensity={1} castShadow />

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { MemoryMap } from "@/components/memory-map";
+import { MemoryMap } from "@/components/memory/memory-map";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin } from "lucide-react";
 import type { User } from "@supabase/supabase-js";

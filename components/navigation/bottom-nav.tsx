@@ -12,6 +12,7 @@ import {
   MapPin,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
 
 const navItems: Array<{ view: ActiveView; label: string; icon: LucideIcon }> = [
   { view: "upload", label: "投稿", icon: Upload },
@@ -82,9 +83,9 @@ export function BottomNav() {
         {externalNavItems.map((item) => {
           const isActive = pathname === item.path;
           return (
-            <button
+            <Link
               key={item.path}
-              onClick={() => router.push(item.path)}
+              href={item.path}
               className="flex flex-col items-center justify-center gap-1 text-sm font-medium text-muted-foreground transition-colors duration-200 focus:outline-none"
             >
               <div
@@ -105,7 +106,7 @@ export function BottomNav() {
               <span className={cn(isActive && "text-primary font-semibold")}>
                 {item.label}
               </span>
-            </button>
+            </Link>
           );
         })}
       </div>

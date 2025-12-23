@@ -1,4 +1,3 @@
-// components/memory-heatmap.tsx
 "use client";
 
 import { useMemo } from "react";
