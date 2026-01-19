@@ -23,12 +23,14 @@ interface BakuStore {
   hunger: number;
   lastFed: string | null;
   status: BakuStatus;
+  size: number;
   memories: Memory[];
   notificationsEnabled: boolean;
   notificationInterval: number;
   activeView: View;
 
   feedBaku: (moodCategory?: string, hasText?: boolean) => void;
+  setSize: (size: number) => void;
   addMemory: (memory: Memory) => void;
   updateHunger: () => void;
   setHunger: (hunger: number) => void;
@@ -76,6 +78,7 @@ export const useBakuStore = create<BakuStore>()(
       hunger: 100,
       lastFed: new Date().toISOString(), // 初期値として現在時刻を設定
       status: "healthy",
+      size: 30,
       memories: [
         {
           id: "dummy-1",
@@ -98,15 +101,21 @@ export const useBakuStore = create<BakuStore>()(
 
       feedBaku: (moodCategory?: string, hasText?: boolean) => {
         const currentHunger = get().hunger;
+        const currentSize = get().size ?? 0;
+      
         const recoveryAmount = calculateRecoveryAmount(moodCategory, hasText);
         const newHunger = Math.min(100, currentHunger + recoveryAmount);
-
+      
+        const newSize = currentSize + 0.5;
+      
         set({
           hunger: newHunger,
+          size: newSize,
           lastFed: new Date().toISOString(),
           status: calculateStatus(newHunger),
         });
       },
+      
 
       addMemory: (memory) => {
         set((state) => ({
@@ -159,6 +168,10 @@ export const useBakuStore = create<BakuStore>()(
 
       setActiveView: (view) => {
         set({ activeView: view });
+      },
+
+      setSize: (size) => {
+        set({ size });
       },
     }),
     {
