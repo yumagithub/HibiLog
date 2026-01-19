@@ -22,6 +22,12 @@ export default function LoginPage() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
+
+      if (event === "PASSWORD_RECOVERY") {
+        router.push("/auth/reset-password");
+        return;
+      }
+
       if (event === "SIGNED_IN") {
         // ログイン後にホームページにリダイレクト
         router.push("/");
@@ -94,6 +100,15 @@ export default function LoginPage() {
             },
           }}
         />
+        <div className="text-center">
+          <button
+            type="button"
+            className="text-sm underline text-muted-foreground hover:text-foreground"
+            onClick={() => router.push("/auth/forgot-password")}
+          >
+            パスワードをお忘れですか？
+          </button>
+        </div>
 
         {/* ゲストログイン・デモログイン */}
         <div className="space-y-3">
