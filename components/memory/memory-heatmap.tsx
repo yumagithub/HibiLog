@@ -93,86 +93,88 @@ export function MemoryHeatmap({ memories, weeks = 52 }: MemoryHeatmapProps) {
   const dayLabels = ["日", "月", "火", "水", "木", "金", "土"];
 
   return (
-    <div className="w-full overflow-x-auto">
-      <div className="inline-block min-w-full">
-        {/* 月のラベル */}
-        <div className="flex mb-1 ml-8 text-[10px] text-gray-500">
-          {monthLabels.map((label, idx) => (
-            <div
-              key={idx}
-              className="absolute"
-              style={{
-                left: `${label.weekIndex * 14 + 32}px`,
-              }}
-            >
-              {label.month}
-            </div>
-          ))}
-        </div>
-
-        <div className="flex">
-          {/* 曜日ラベル */}
-          <div className="flex flex-col text-[9px] text-gray-500 mr-1">
-            {dayLabels.map((label, idx) => (
+    <div className="w-full overflow-hidden">
+      <div className="overflow-x-auto">
+        <div className="inline-block min-w-full">
+          {/* 月のラベル */}
+          <div className="relative flex mb-1 ml-8 text-[10px] text-gray-500 h-4">
+            {monthLabels.map((label, idx) => (
               <div
                 key={idx}
-                className="h-[11px] flex items-center"
+                className="absolute whitespace-nowrap"
                 style={{
-                  visibility: idx % 2 === 1 ? "visible" : "hidden",
+                  left: `${label.weekIndex * 14 + 32}px`,
                 }}
               >
-                {label}
+                {label.month}
               </div>
             ))}
           </div>
 
-          {/* ヒートマップグリッド */}
-          <div className="flex gap-[3px]">
-            {Array.from({ length: weeks }).map((_, weekIndex) => (
-              <div key={weekIndex} className="flex flex-col gap-[3px]">
-                {Array.from({ length: 7 }).map((_, dayOfWeek) => {
-                  const day = heatmapData.find(
-                    (d) =>
-                      d.weekIndex === weekIndex && d.dayOfWeek === dayOfWeek
-                  );
+          <div className="flex">
+            {/* 曜日ラベル */}
+            <div className="flex flex-col text-[9px] text-gray-500 mr-1">
+              {dayLabels.map((label, idx) => (
+                <div
+                  key={idx}
+                  className="h-[11px] flex items-center"
+                  style={{
+                    visibility: idx % 2 === 1 ? "visible" : "hidden",
+                  }}
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
 
-                  if (!day) return null;
+            {/* ヒートマップグリッド */}
+            <div className="flex gap-[3px]">
+              {Array.from({ length: weeks }).map((_, weekIndex) => (
+                <div key={weekIndex} className="flex flex-col gap-[3px]">
+                  {Array.from({ length: 7 }).map((_, dayOfWeek) => {
+                    const day = heatmapData.find(
+                      (d) =>
+                        d.weekIndex === weekIndex && d.dayOfWeek === dayOfWeek,
+                    );
 
-                  const date = new Date(day.date);
-                  const isToday =
-                    day.date === new Date().toISOString().split("T")[0];
-                  const isFuture = date > new Date();
+                    if (!day) return null;
 
-                  return (
-                    <div
-                      key={`${weekIndex}-${dayOfWeek}`}
-                      className={`
+                    const date = new Date(day.date);
+                    const isToday =
+                      day.date === new Date().toISOString().split("T")[0];
+                    const isFuture = date > new Date();
+
+                    return (
+                      <div
+                        key={`${weekIndex}-${dayOfWeek}`}
+                        className={`
                         w-[11px] h-[11px] rounded-[2px] transition-all
                         ${isFuture ? "bg-gray-50" : getColorClass(day.count)}
                         ${isToday ? "ring-2 ring-blue-400 ring-offset-1" : ""}
                         hover:ring-2 hover:ring-gray-400 hover:ring-offset-1
                         cursor-pointer
                       `}
-                      title={`${day.date}: ${day.count}件の投稿`}
-                    />
-                  );
-                })}
-              </div>
-            ))}
+                        title={`${day.date}: ${day.count}件の投稿`}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* 凡例 */}
-        <div className="flex items-center justify-end gap-1 mt-2 text-[10px] text-gray-500">
-          <span>少</span>
-          <div className="flex gap-[3px]">
-            <div className="w-[11px] h-[11px] rounded-[2px] bg-gray-100" />
-            <div className="w-[11px] h-[11px] rounded-[2px] bg-green-200" />
-            <div className="w-[11px] h-[11px] rounded-[2px] bg-green-300" />
-            <div className="w-[11px] h-[11px] rounded-[2px] bg-green-400" />
-            <div className="w-[11px] h-[11px] rounded-[2px] bg-green-500" />
+          {/* 凡例 */}
+          <div className="flex items-center justify-end gap-1 mt-2 text-[10px] text-gray-500">
+            <span>少</span>
+            <div className="flex gap-[3px]">
+              <div className="w-[11px] h-[11px] rounded-[2px] bg-gray-100" />
+              <div className="w-[11px] h-[11px] rounded-[2px] bg-green-200" />
+              <div className="w-[11px] h-[11px] rounded-[2px] bg-green-300" />
+              <div className="w-[11px] h-[11px] rounded-[2px] bg-green-400" />
+              <div className="w-[11px] h-[11px] rounded-[2px] bg-green-500" />
+            </div>
+            <span>多</span>
           </div>
-          <span>多</span>
         </div>
       </div>
     </div>

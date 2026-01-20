@@ -1,51 +1,29 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useBakuStore, type ActiveView } from "@/lib/store";
+import { useBakuStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import {
-  Upload,
+  Home,
   BookHeart,
   Settings,
   Atom,
   BarChart3,
-  User,
   MapPin,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 
-const navItems: Array<{ view: ActiveView; label: string; icon: LucideIcon }> = [
-  { view: "upload", label: "投稿する", icon: Upload },
-  { view: "memories", label: "思い出を見る", icon: BookHeart },
-  { view: "settings", label: "設定", icon: Settings },
-];
-
-const externalNavItems = [
+const navItems = [
+  { path: "/", label: "ホーム", icon: Home },
+  { path: "/memories", label: "思い出を見る", icon: BookHeart },
   { path: "/map", label: "マップ", icon: MapPin },
   { path: "/stats", label: "統計", icon: BarChart3 },
-  { path: "/account", label: "アカウント", icon: User },
+  { path: "/settings", label: "設定", icon: Settings },
 ];
 
 export function SidebarNav() {
-  const router = useRouter();
   const pathname = usePathname();
-  const { activeView, setActiveView, hunger } = useBakuStore();
-
-  const handleNavClick = (view: ActiveView) => {
-    // 投稿タブの場合は、カメラページに遷移
-    if (view === "upload") {
-      router.push("/camera");
-      return;
-    }
-
-    // アカウントページなど、メインページ以外にいる場合はメインページに遷移
-    if (pathname !== "/") {
-      router.push("/");
-    }
-    // ビューを設定
-    setActiveView(view);
-  };
+  const { hunger } = useBakuStore();
 
   return (
     // md(768px)以上の画面でのみ表示
@@ -73,24 +51,6 @@ export function SidebarNav() {
 
       <nav className="flex flex-col gap-2">
         {navItems.map((item) => {
-          const isActive = pathname === "/" && activeView === item.view;
-          return (
-            <button
-              key={item.view}
-              onClick={() => handleNavClick(item.view)}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                isActive && "clay-button text-primary font-semibold"
-              )}
-            >
-              {<item.icon className="h-5 w-5" />}
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-
-        {/* 外部ページへのナビゲーション */}
-        {externalNavItems.map((item) => {
           const isActive = pathname === item.path;
           return (
             <Link
@@ -98,10 +58,10 @@ export function SidebarNav() {
               href={item.path}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                isActive && "clay-button text-primary font-semibold"
+                isActive && "clay-button text-primary font-semibold",
               )}
             >
-              {<item.icon className="h-5 w-5" />}
+              <item.icon className="h-5 w-5" />
               <span>{item.label}</span>
             </Link>
           );
