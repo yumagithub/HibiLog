@@ -24,13 +24,14 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { checkAndSendAchievementNotification } from "@/app/actions";
 
 export function UploadTab({ user }: { user: User | null }) {
   const supabase = createClient();
   const feedBaku = useBakuStore((state) => state.feedBaku);
   const addMemory = useBakuStore((state) => state.addMemory);
   const [memoryDate, setMemoryDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [textContent, setTextContent] = useState("");
   const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
@@ -46,7 +47,7 @@ export function UploadTab({ user }: { user: User | null }) {
     latitude: string;
     longitude: string;
   } | null>(null);
-  // 
+  //
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -75,10 +76,12 @@ export function UploadTab({ user }: { user: User | null }) {
     setIsUploading(true);
     setMessage(null);
 
-    // 【修正開始】変数をtryの外（handleSubmitのスコープ）で定義し直す
-    const parsedLatitude = manualLocation?.latitude ? parseFloat(manualLocation.latitude) : null;
-    const parsedLongitude = manualLocation?.longitude ? parseFloat(manualLocation.longitude) : null;
-    // 【修正終了】
+    const parsedLatitude = manualLocation?.latitude
+      ? parseFloat(manualLocation.latitude)
+      : null;
+    const parsedLongitude = manualLocation?.longitude
+      ? parseFloat(manualLocation.longitude)
+      : null;
 
     try {
       // ゲストモード: LocalStorageのみに保存
@@ -98,7 +101,7 @@ export function UploadTab({ user }: { user: User | null }) {
             textContent: textContent || undefined,
             // このスコープで外部の変数を参照
             latitude: parsedLatitude,
-            longitude: parsedLongitude,       
+            longitude: parsedLongitude,
           });
 
           // バクに食べさせる
@@ -118,7 +121,7 @@ export function UploadTab({ user }: { user: User | null }) {
           setSelectedMood(null);
           setFile(null);
           const fileInput = document.getElementById(
-            "file-upload"
+            "file-upload",
           ) as HTMLInputElement;
           if (fileInput) fileInput.value = "";
           setManualLocation(null);
@@ -141,7 +144,7 @@ export function UploadTab({ user }: { user: User | null }) {
       if (uploadError) {
         console.error("ストレージアップロードエラー:", uploadError);
         throw new Error(
-          `ストレージへのアップロードに失敗しました: ${uploadError.message}`
+          `ストレージへのアップロードに失敗しました: ${uploadError.message}`,
         );
       }
 
@@ -159,11 +162,11 @@ export function UploadTab({ user }: { user: User | null }) {
       const mediaType = file.type.startsWith("image/")
         ? "photo"
         : file.type.startsWith("video/")
-        ? "video"
-        : null;
+          ? "video"
+          : null;
       if (mediaType === null) {
         throw new Error(
-          "対応していないファイル形式です。画像または動画を選択してください。"
+          "対応していないファイル形式です。画像または動画を選択してください。",
         );
       }
 
@@ -183,7 +186,7 @@ export function UploadTab({ user }: { user: User | null }) {
               sample: textContent || selectedMood.label,
             }),
             signal: controller.signal,
-          }
+          },
         );
         clearTimeout(timeoutId);
 
@@ -215,7 +218,7 @@ export function UploadTab({ user }: { user: User | null }) {
         console.error("ユーザーID:", user.id);
         console.error("認証状態:", await supabase.auth.getUser());
         throw new Error(
-          `データベースへの保存に失敗しました: ${insertError.message}`
+          `データベースへの保存に失敗しました: ${insertError.message}`,
         );
       }
 
@@ -261,7 +264,7 @@ export function UploadTab({ user }: { user: User | null }) {
         // エラーは投げずにコンソールに出力するに留める
         console.error(
           "バクの空腹度の更新に失敗しました:",
-          (error as Error).message
+          (error as Error).message,
         );
       }
 
@@ -270,6 +273,14 @@ export function UploadTab({ user }: { user: User | null }) {
 
       // ストリーク再計算をトリガー
       window.dispatchEvent(new Event("memoryAdded"));
+
+      // 達成通知をチェック
+      try {
+        await checkAndSendAchievementNotification(user.id);
+      } catch (error) {
+        console.error("Achievement notification failed:", error);
+        // 通知失敗してもメモリー投稿は成功しているので続行
+      }
 
       // 成功！
       setMessage({
@@ -281,7 +292,7 @@ export function UploadTab({ user }: { user: User | null }) {
       setTextContent("");
       setFile(null);
       const fileInput = document.getElementById(
-        "file-upload"
+        "file-upload",
       ) as HTMLInputElement;
       if (fileInput) fileInput.value = "";
       setManualLocation(null);
@@ -385,7 +396,10 @@ export function UploadTab({ user }: { user: User | null }) {
           </Label>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="latitude" className="text-xs text-muted-foreground">
+              <Label
+                htmlFor="latitude"
+                className="text-xs text-muted-foreground"
+              >
                 緯度 (Latitude)
               </Label>
               <Input
@@ -394,16 +408,21 @@ export function UploadTab({ user }: { user: User | null }) {
                 step="any"
                 placeholder="例: 35.6895"
                 value={manualLocation?.latitude || ""}
-                onChange={(e) => setManualLocation(prev => ({
+                onChange={(e) =>
+                  setManualLocation((prev) => ({
                     ...prev,
                     latitude: e.target.value,
                     longitude: prev?.longitude || "", // 既存のlongitudeを維持
-                }))}
+                  }))
+                }
                 disabled={isUploading}
               />
             </div>
             <div>
-              <Label htmlFor="longitude" className="text-xs text-muted-foreground">
+              <Label
+                htmlFor="longitude"
+                className="text-xs text-muted-foreground"
+              >
                 経度 (Longitude)
               </Label>
               <Input
@@ -412,11 +431,13 @@ export function UploadTab({ user }: { user: User | null }) {
                 step="any"
                 placeholder="例: 139.6917"
                 value={manualLocation?.longitude || ""}
-                onChange={(e) => setManualLocation(prev => ({
+                onChange={(e) =>
+                  setManualLocation((prev) => ({
                     ...prev,
                     latitude: prev?.latitude || "", // 既存のlatitudeを維持
                     longitude: e.target.value,
-                }))}
+                  }))
+                }
                 disabled={isUploading}
               />
             </div>

@@ -10,29 +10,21 @@ import { useBakuStore } from "@/lib/store";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
-import { MapPin } from "lucide-react";
 import {
+  MapPin,
   Bell,
-  Check,
   UserCircle,
   UserPlus,
   BarChart3,
   AlertCircle,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import {
   subscribeUser,
   unsubscribeUser,
   sendNotification,
 } from "@/app/actions";
 import { createClient } from "@/lib/supabase/client";
-
-const intervals = [
-  { value: 3, label: "3時間おき" },
-  { value: 6, label: "6時間おき" },
-  { value: 12, label: "12時間おき" },
-  { value: 24, label: "24時間おき" },
-];
+import { NotificationPreferencesUI } from "./notification-preferences-ui";
 
 // VAPIDキーをUint8Arrayに変換するヘルパー関数
 function urlBase64ToUint8Array(base64String: string) {
@@ -47,20 +39,14 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function SettingsTab({ user }: { user: User | null }) {
-  const {
-    notificationsEnabled,
-    notificationInterval,
-    toggleNotifications,
-    setNotificationInterval,
-  } = useBakuStore();
+  const { notificationsEnabled, toggleNotifications } = useBakuStore();
   const router = useRouter();
 
   const [isPushSupported, setIsPushSupported] = useState(false);
   const [subscription, setSubscription] = useState<PushSubscription | null>(
-    null
+    null,
   );
   const [error, setError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
 
   // 1. コンポーネントマウント時にPush APIのサポート状況と現在の購読状態を確認
   useEffect(() => {
@@ -83,20 +69,6 @@ export function SettingsTab({ user }: { user: User | null }) {
               useBakuStore.getState().toggleNotifications();
             }
           }
-
-          // DBから通知間隔設定を取得
-          if (user) {
-            const supabase = createClient();
-            const { data: profile } = await supabase
-              .from("baku_profiles")
-              .select("notification_interval")
-              .eq("user_id", user.id)
-              .single();
-
-            if (profile?.notification_interval) {
-              setNotificationInterval(profile.notification_interval);
-            }
-          }
         } catch (error) {
           console.error("Failed to check push subscription:", error);
         }
@@ -104,7 +76,7 @@ export function SettingsTab({ user }: { user: User | null }) {
     }
 
     checkPushSupport();
-  }, [notificationsEnabled, user]);
+  }, [notificationsEnabled]);
 
   // 通知トグルのハンドラー
   const handleNotificationToggle = async () => {
@@ -128,7 +100,7 @@ export function SettingsTab({ user }: { user: User | null }) {
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!vapidKey) {
         setError(
-          "通知機能の設定が完了していません。管理者にお問い合わせください。"
+          "通知機能の設定が完了していません。管理者にお問い合わせください。",
         );
         return;
       }
@@ -137,7 +109,7 @@ export function SettingsTab({ user }: { user: User | null }) {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
         setError(
-          "通知権限が拒否されました。ブラウザの設定から通知を許可してください。"
+          "通知権限が拒否されました。ブラウザの設定から通知を許可してください。",
         );
         return;
       }
@@ -177,7 +149,7 @@ export function SettingsTab({ user }: { user: User | null }) {
     } catch (err) {
       console.error("Failed to subscribe:", err);
       setError(
-        "通知の購読に失敗しました。ブラウザの通知設定を確認してください。"
+        "通知の購読に失敗しました。ブラウザの通知設定を確認してください。",
       );
     }
   };
@@ -215,30 +187,6 @@ export function SettingsTab({ user }: { user: User | null }) {
 
   const isGuest = !user;
 
-  // 通知間隔変更時にDBへ保存
-  const handleIntervalChange = async (newInterval: number) => {
-    if (!user) return;
-
-    setIsSaving(true);
-    try {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("baku_profiles")
-        .update({ notification_interval: newInterval })
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-
-      setNotificationInterval(newInterval);
-      setError(null);
-    } catch (err) {
-      console.error("Failed to update notification interval:", err);
-      setError("通知間隔の更新に失敗しました。");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   return (
     <Card className="p-6 space-y-6">
       {/* ゲストユーザー向けアップグレード通知 */}
@@ -270,7 +218,7 @@ export function SettingsTab({ user }: { user: User | null }) {
               プッシュ通知
             </Label>
             <p className="text-sm text-muted-foreground">
-              バクが空腹になったら通知します
+              バクに関する通知を受け取ります
             </p>
           </div>
           <Switch
@@ -305,44 +253,16 @@ export function SettingsTab({ user }: { user: User | null }) {
       </div>
 
       {/* Notification Interval */}
-      {notificationsEnabled && !isGuest && (
-        <div className="space-y-3 pt-4 border-t">
-          <Label className="text-base font-medium">通知間隔</Label>
-          <p className="text-sm text-muted-foreground">
-            バクが空腹になった時に、どのくらいの頻度で通知を受け取るか設定できます
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            {intervals.map((interval) => {
-              const isSelected = notificationInterval === interval.value;
-              return (
-                <Button
-                  key={interval.value}
-                  variant="default"
-                  onClick={() => handleIntervalChange(interval.value)}
-                  disabled={isSaving}
-                  className={cn(
-                    "h-auto py-3 transition-all duration-200 relative",
-                    isSelected
-                      ? "scale-105 shadow-lg ring-2 ring-primary/30"
-                      : "opacity-50 scale-95 hover:opacity-70 hover:scale-100"
-                  )}
-                >
-                  {isSelected ? (
-                    <Check className="h-4 w-4 mr-2" />
-                  ) : (
-                    <Bell className="h-4 w-4 mr-2" />
-                  )}
-                  {interval.label}
-                </Button>
-              );
-            })}
-          </div>
+      {/* Notification Types (詳細設定) */}
+      {notificationsEnabled && !isGuest && user && (
+        <div className="pt-4 border-t">
+          <NotificationPreferencesUI user={user} />
 
           {/* Test Notification Button */}
           <Button
             onClick={handleTestNotification}
             variant="outline"
-            className="w-full mt-3"
+            className="w-full mt-4"
           >
             <Bell className="h-4 w-4 mr-2" />
             テスト通知を送信

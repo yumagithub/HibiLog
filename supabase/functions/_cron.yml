@@ -7,3 +7,15 @@
   schedule: "0 * * * *" # Every hour at minute 0
   function: "hunger-check"
   method: "POST"
+
+# Run daily-reminder function every hour (checks configured time)
+- name: "hourly-daily-reminder"
+  schedule: "0 * * * *" # Every hour at minute 0
+  function: "daily-reminder"
+  method: "POST"
+
+# Run random-prompt function once per day at a random-ish time (11:30)
+- name: "daily-random-prompt"
+  schedule: "30 11 * * *" # Every day at 11:30
+  function: "random-prompt"
+  method: "POST"
