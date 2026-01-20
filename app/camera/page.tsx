@@ -54,7 +54,7 @@ export default function CameraPage() {
     [facingMode, stopStream]
   );
 
-  // カメラページを開いた時に位置情報を取得
+  // カメラページを開いたときに位置情報を取得
   useEffect(() => {
     requestLocation();
   }, []);
@@ -70,7 +70,7 @@ export default function CameraPage() {
     const options: PositionOptions = {
       enableHighAccuracy: true, // 高精度モード（GPS優先）
       timeout: 10000, // 10秒でタイムアウト
-      maximumAge: 0, // キャッシュを使わない
+      maximumAge: 0, // キャッシュを使用しない
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -88,13 +88,11 @@ export default function CameraPage() {
         setIsLoadingLocation(false);
         console.log("✅ 位置情報取得成功:", position.coords);
       },
-      // 【修正箇所】エラーハンドラーのログ出力方法を修正
       (error) => {
-        // エラーコードとメッセージを明確に、かつオブジェクト形式で出力
         console.error("❌ 位置情報取得エラー:", {
           code: error.code,
           message: error.message,
-          rawError: error, // 生のオブジェクトも出力し詳細を確保
+          rawError: error,
         });
         setIsLoadingLocation(false);
 
@@ -106,7 +104,7 @@ export default function CameraPage() {
             break;
           case error.POSITION_UNAVAILABLE:
             setLocationError(
-              "位置情報が利用できません。GPS/Wi-Fiをオンにしてください。"
+              "位置情報が利用できません。GPSやWi-Fiをオンにしてください。"
             );
             break;
           case error.TIMEOUT:
@@ -117,7 +115,7 @@ export default function CameraPage() {
           default:
             setLocationError(
               `位置情報の取得に失敗しました (Code: ${error.code})`
-            ); // 汎用エラーメッセージも詳細化
+            );
         }
       },
       options
@@ -147,6 +145,11 @@ export default function CameraPage() {
     const ctx = canvasRef.current.getContext("2d");
     if (!ctx) return;
 
+    if (facingMode === "user") {
+      ctx.translate(w, 0);
+      ctx.scale(-1, 1);
+    }
+
     ctx.drawImage(videoRef.current, 0, 0, w, h);
     const dataUrl = canvasRef.current.toDataURL("image/jpeg", 0.92);
 
@@ -162,7 +165,7 @@ export default function CameraPage() {
       }
     } catch {}
 
-    // 2) 미리보기 페이지로 이동
+    // プレビューページへ移動
     router.push("/camera/preview");
   };
 
@@ -181,8 +184,7 @@ export default function CameraPage() {
         <Card className="p-4 gap-4">
           <div className="relative rounded-xl overflow-hidden bg-muted aspect-3/4 flex items-center justify-center">
             <div className="absolute top-4 left-4 z-20">
-              {" "}
-              {/* z-20でカメラ上に表示 */}
+              {/* カメラ上に表示 */}
               {isLoadingLocation && (
                 <div className="bg-black/50 backdrop-blur-sm text-white px-3 py-2 rounded-lg text-xs flex items-center gap-2">
                   <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
@@ -200,7 +202,6 @@ export default function CameraPage() {
                     <span>⚠️</span>
                     <div>
                       <p>{locationError}</p>
-                      {/* requestLocation関数が外部で定義されていることを前提 */}
                       <button
                         onClick={requestLocation}
                         className="mt-1 underline text-blue-300"
@@ -217,7 +218,10 @@ export default function CameraPage() {
               ref={videoRef}
               playsInline
               muted
-              className="w-full h-full object-cover"
+              className={[
+                "w-full h-full object-cover",
+                facingMode === "user" ? "scale-x-[-1]" : "",
+              ].join(" ")}
             />
           </div>
 
@@ -225,26 +229,30 @@ export default function CameraPage() {
 
           {error && <p className="text-sm text-destructive -mt-2">{error}</p>}
 
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              variant="outline"
-              onClick={switchCamera}
-              disabled={isStarting}
-              className="col-span-1"
-              title="カメラの切り替え"
-            >
-              <RefreshCw className="mr-2" />
-              反転
-            </Button>
+          <div className="flex items-center justify-between mt-2">
+            {/* 左側は空けてバランス調整 */}
+            <div className="w-12" />
 
-            <Button
+            {/* 中央シャッターボタン */}
+            <button
               onClick={handleCapture}
               disabled={!stream || isStarting}
-              className="col-span-1"
+              className="h-20 w-20 rounded-full bg-white shadow-lg active:scale-95 transition flex items-center justify-center disabled:opacity-40"
               title="撮影"
             >
-              <Camera className="mr-2" />
-              撮影
+              <div className="h-14 w-14 rounded-full border-4 border-gray-300" />
+            </button>
+
+            {/* 右側カメラ切り替えボタン */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={switchCamera}
+              disabled={isStarting}
+              className="h-14 w-14"
+              title="反転"
+            >
+              <RefreshCw className="!h-7 !w-7" />
             </Button>
           </div>
         </Card>
