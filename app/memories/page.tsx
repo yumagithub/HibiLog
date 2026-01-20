@@ -12,14 +12,15 @@ import {
   AlertTriangle,
   Grid3x3,
   CalendarDays,
-  ArrowLeft,
   MapPin,
+  User as UserIcon,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { MemoryDetailModal } from "@/components/memory/memory-detail-modal";
 import { CalendarView } from "@/components/memory/calendar-view";
 import { motion } from "framer-motion";
 import { MOOD_OPTIONS, MoodOption } from "@/lib/mood-emojis";
+import { AppLayout } from "@/components/layout/app-layout";
 
 // shadcn/ui Calendar & Popover
 import { Calendar as FilterCalendar } from "@/components/ui/calendar";
@@ -81,13 +82,15 @@ export default function MemoriesPage() {
   const localMemories = useBakuStore((state) => state.memories);
 
   useEffect(() => {
-  const getUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setUser(session?.user ?? null);
-  };
-  getUser();
-}, [supabase]);
-  
+    const getUser = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+    };
+    getUser();
+  }, [supabase]);
+
   // 🎞 メモリー取得 (Supabase or Local)
   useEffect(() => {
     const fetchMemories = async () => {
@@ -165,12 +168,12 @@ export default function MemoriesPage() {
   const handleMemoryClick = (memory: Memory) => {
     setSelectedMemory(memory);
     if (viewMode === "calendar") {
-    // カレンダーの時は「古い順」にする（右スライドで未来へ）
-        setFilteredMemories([...memories].reverse());
-      } else {
-        // グリッドの時はそのまま（新しい順）
-        setFilteredMemories(filteredForView);
-      }
+      // カレンダーの時は「古い順」にする（右スライドで未来へ）
+      setFilteredMemories([...memories].reverse());
+    } else {
+      // グリッドの時はそのまま（新しい順）
+      setFilteredMemories(filteredForView);
+    }
     setIsModalOpen(true);
   };
 
@@ -183,20 +186,20 @@ export default function MemoriesPage() {
     return <Card className="p-12 text-center clay-input">読み込み中...</Card>;
 
   if (error)
-  return (
-    <Card className="p-12 text-center clay-input border-destructive">
-      <AlertTriangle className="h-16 w-16 text-destructive mx-auto" />
-      <p className="mt-2 text-destructive">{error}</p>
-      {/* 再試行ボタンの追加 */}
-      <Button 
-        variant="outline" 
-        className="mt-4"
-        onClick={() => window.location.reload()} // ページをリロードさせる
-      >
-        もう一度試す
-      </Button>
-    </Card>
-  );
+    return (
+      <Card className="p-12 text-center clay-input border-destructive">
+        <AlertTriangle className="h-16 w-16 text-destructive mx-auto" />
+        <p className="mt-2 text-destructive">{error}</p>
+        {/* 再試行ボタンの追加 */}
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => window.location.reload()} // ページをリロードさせる
+        >
+          もう一度試す
+        </Button>
+      </Card>
+    );
 
   if (memories.length === 0)
     return (
@@ -219,278 +222,278 @@ export default function MemoriesPage() {
     : "日付";
 
   return (
-        <div className="min-h-screen gradient-bg">
-          <div className="container max-w-md mx-auto px-4 py-6">
-            <header className="flex items-center gap-3 mb-4">
-              <Button asChild variant="outline" size="icon-sm">
-                <Link href="/">
-                  <ArrowLeft />
-                </Link>
-              </Button>
-              <h1 className="text-2xl font-bold">思い出</h1>
-            </header>
-      {/* 📅 ビュー切替 */}
-      <div className="flex justify-end gap-2 mb-4">
-        <Button
-          variant={viewMode === "calendar" ? "default" : "outline"}
-          size="sm"
-          className="gap-2"
-          onClick={() => setViewMode("calendar")}
-        >
-          <CalendarDays className="h-4 w-4" />
-          カレンダー
-        </Button>
-        <Button
-          variant={viewMode === "grid" ? "default" : "outline"}
-          size="sm"
-          className="gap-2"
-          onClick={() => setViewMode("grid")}
-        >
-          <Grid3x3 className="h-4 w-4" />
-          グリッド
-        </Button>
-      </div>
+    <AppLayout className="min-h-screen gradient-bg pb-48 md:pb-6">
+      <div className="container max-w-md mx-auto px-4 py-6">
+        <header className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold">思い出</h1>
+          <Link href="/account">
+            <Button variant="ghost" size="icon" title="アカウント">
+              <UserIcon className="h-5 w-5" />
+            </Button>
+          </Link>
+        </header>
+        {/* 📅 ビュー切替 */}
+        <div className="flex justify-end gap-2 mb-4">
+          <Button
+            variant={viewMode === "calendar" ? "default" : "outline"}
+            size="sm"
+            className="gap-2"
+            onClick={() => setViewMode("calendar")}
+          >
+            <CalendarDays className="h-4 w-4" />
+            カレンダー
+          </Button>
+          <Button
+            variant={viewMode === "grid" ? "default" : "outline"}
+            size="sm"
+            className="gap-2"
+            onClick={() => setViewMode("grid")}
+          >
+            <Grid3x3 className="h-4 w-4" />
+            グリッド
+          </Button>
+        </div>
 
-      {/* 📅 カレンダービュー */}
-      {viewMode === "calendar" && (
-        <CalendarView 
-          memories={memories} 
-          onDateClick={(date, memoriesForDate) => {
-            if (memoriesForDate.length > 0) {
-              handleMemoryClick(memoriesForDate[0]);
-            }
-          }} 
-        />
-      )}
-      {/* 📸 グリッドビュー */}
-      {viewMode === "grid" && (
-        <>
-          {/* 🔍 フィルタ UI */}
-          <div className="mb-4 flex items-center gap-2">
-            {/* 📅 日付フィルタ */}
-            <Popover open={isDateOpen} onOpenChange={setIsDateOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={selectedDate ? "default" : "outline"}
-                  size="sm"
-                  className="min-w-[140px] justify-between"
-                >
-                  <span className="text-xs truncate">{dateLabel}</span>
-                  <CalendarIcon className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="p-2 bg-background border rounded-xl shadow-lg">
-                <FilterCalendar
-                  mode="single"
-                  selected={selectedDate ?? undefined}
-                  onSelect={(date) => {
-                    setSelectedDate(date ?? null);
-                    if (date) setIsDateOpen(false);
-                  }}
-                />
-                {selectedDate && (
-                  <button
-                    className="mt-2 text-[11px] text-muted-foreground hover:text-destructive"
-                    onClick={() => setSelectedDate(null)}
+        {/* 📅 カレンダービュー */}
+        {viewMode === "calendar" && (
+          <CalendarView
+            memories={memories}
+            onDateClick={(date, memoriesForDate) => {
+              if (memoriesForDate.length > 0) {
+                handleMemoryClick(memoriesForDate[0]);
+              }
+            }}
+          />
+        )}
+        {/* 📸 グリッドビュー */}
+        {viewMode === "grid" && (
+          <>
+            {/* 🔍 フィルタ UI */}
+            <div className="mb-4 flex items-center gap-2">
+              {/* 📅 日付フィルタ */}
+              <Popover open={isDateOpen} onOpenChange={setIsDateOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={selectedDate ? "default" : "outline"}
+                    size="sm"
+                    className="min-w-[140px] justify-between"
                   >
-                    日付クリア
-                  </button>
-                )}
-              </PopoverContent>
-            </Popover>
-
-            {/* 🔍 キーワード */}
-            <input
-              className="flex-1 px-3 py-2 clay-input text-sm"
-              placeholder="キーワード検索"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-
-            {/* 😀 感情 */}
-            <div className="relative">
-              <Button
-                type="button"
-                variant={selectedMood ? "default" : "outline"}
-                size="icon"
-                className="w-10 h-10"
-                onClick={() => setIsMoodDropdownOpen((v) => !v)}
-              >
-                {selectedMood ? (
-                  selectedMood.emoji.startsWith("/") ? (
-                    <Image
-                      src={selectedMood.emoji}
-                      alt={selectedMood.label}
-                      width={24}
-                      height={24}
-                      className="w-6 h-6"
-                    />
-                  ) : (
-                    <span className="text-xl">{selectedMood.emoji}</span>
-                  )
-                ) : (
-                  <span className="text-xs">感情</span>
-                )}
-              </Button>
-
-              {isMoodDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-40 clay-card z-20 p-2 rounded-xl border">
-                  {MOOD_OPTIONS.map((mood) => (
+                    <span className="text-xs truncate">{dateLabel}</span>
+                    <CalendarIcon className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-2 bg-background border rounded-xl shadow-lg">
+                  <FilterCalendar
+                    mode="single"
+                    selected={selectedDate ?? undefined}
+                    onSelect={(date) => {
+                      setSelectedDate(date ?? null);
+                      if (date) setIsDateOpen(false);
+                    }}
+                  />
+                  {selectedDate && (
                     <button
-                      key={mood.emoji}
-                      className="w-full flex items-center gap-2 px-2 py-1 hover:bg-muted"
-                      onClick={() => {
-                        setSelectedMood(mood);
-                        setIsMoodDropdownOpen(false);
-                      }}
+                      className="mt-2 text-[11px] text-muted-foreground hover:text-destructive"
+                      onClick={() => setSelectedDate(null)}
                     >
-                      {mood.emoji.startsWith("/") ? (
-                        <Image
-                          src={mood.emoji}
-                          alt={mood.label}
-                          width={20}
-                          height={20}
-                          className="w-5 h-5"
-                        />
-                      ) : (
-                        <span className="text-lg">{mood.emoji}</span>
-                      )}
-                      <span className="text-xs">{mood.label}</span>
-                    </button>
-                  ))}
-                  {selectedMood && (
-                    <button
-                      className="text-[10px] mt-1 text-muted-foreground hover:text-destructive"
-                      onClick={() => setSelectedMood(null)}
-                    >
-                      感情クリア
+                      日付クリア
                     </button>
                   )}
-                </div>
-              )}
-            </div>
-          </div>
+                </PopoverContent>
+              </Popover>
 
-          {/* 📸 Grid list */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {filteredForView.length === 0 ? (
-              <p className="col-span-3 text-center text-sm text-muted-foreground">
-                該当する思い出が見つかりません
-              </p>
-            ) : (
-              filteredForView.map((memory, index) => (
-                <motion.div
-                  key={memory.id}
-                  className="clay-card relative rounded-lg overflow-hidden aspect-4/3 group"
-                  onClick={() => handleMemoryClick(memory)}
-                  onMouseEnter={() => setHoveredId(memory.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.07 }}
+              {/* 🔍 キーワード */}
+              <input
+                className="flex-1 px-3 py-2 clay-input text-sm"
+                placeholder="キーワード検索"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+
+              {/* 😀 感情 */}
+              <div className="relative">
+                <Button
+                  type="button"
+                  variant={selectedMood ? "default" : "outline"}
+                  size="icon"
+                  className="w-10 h-10"
+                  onClick={() => setIsMoodDropdownOpen((v) => !v)}
                 >
-                  <div className="relative w-full h-full">
-                    {memory.media_url && (
-                      <motion.img
-                        src={memory.media_url}
-                        alt="memory"
-                        className="absolute w-full h-full object-cover"
-                        whileHover={{ scale: 1.1 }}
+                  {selectedMood ? (
+                    selectedMood.emoji.startsWith("/") ? (
+                      <Image
+                        src={selectedMood.emoji}
+                        alt={selectedMood.label}
+                        width={24}
+                        height={24}
+                        className="w-6 h-6"
                       />
+                    ) : (
+                      <span className="text-xl">{selectedMood.emoji}</span>
+                    )
+                  ) : (
+                    <span className="text-xs">感情</span>
+                  )}
+                </Button>
+
+                {isMoodDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-40 clay-card z-20 p-2 rounded-xl border">
+                    {MOOD_OPTIONS.map((mood) => (
+                      <button
+                        key={mood.emoji}
+                        className="w-full flex items-center gap-2 px-2 py-1 hover:bg-muted"
+                        onClick={() => {
+                          setSelectedMood(mood);
+                          setIsMoodDropdownOpen(false);
+                        }}
+                      >
+                        {mood.emoji.startsWith("/") ? (
+                          <Image
+                            src={mood.emoji}
+                            alt={mood.label}
+                            width={20}
+                            height={20}
+                            className="w-5 h-5"
+                          />
+                        ) : (
+                          <span className="text-lg">{mood.emoji}</span>
+                        )}
+                        <span className="text-xs">{mood.label}</span>
+                      </button>
+                    ))}
+                    {selectedMood && (
+                      <button
+                        className="text-[10px] mt-1 text-muted-foreground hover:text-destructive"
+                        onClick={() => setSelectedMood(null)}
+                      >
+                        感情クリア
+                      </button>
                     )}
                   </div>
+                )}
+              </div>
+            </div>
 
-                  {/* Mood Emoji Badge */}
-                  {memory.mood_emoji && (
-                    <motion.div
-                      className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full w-10 h-10 flex items-center justify-center shadow-md"
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{
-                        delay: index * 0.1 + 0.3,
-                        type: "spring",
-                        stiffness: 200,
-                        damping: 10,
-                      }}
-                      whileHover={{
-                        scale: 1.2,
-                        rotate: 360,
-                        transition: { duration: 0.5 },
-                      }}
-                    >
-                      {memory.mood_emoji.startsWith("/") ? (
-                        <Image
-                          src={memory.mood_emoji}
-                          alt="Mood"
-                          width={24}
-                          height={24}
-                          className="w-6 h-6"
-                        />
-                      ) : (
-                        <span className="text-2xl">{memory.mood_emoji}</span>
-                      )}
-                    </motion.div>
-                  )}
-
-                  {/* 位置情報アイコン */}
-                  {hasLocation(memory) && (
-                    <motion.div
-                      className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center shadow-md opacity-80"
-                      initial={{ scale: 0, x: -10 }}
-                      animate={{ scale: 1, x: 0 }}
-                      transition={{
-                        delay: index * 0.1 + 0.4,
-                        type: "spring",
-                        stiffness: 200,
-                        damping: 10,
-                      }}
-                    >
-                      <MapPin className="h-4 w-4 text-gray-700" />
-                    </motion.div>
-                  )}
-
-                  {/* Full Card Overlay */}
+            {/* 📸 Grid list */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {filteredForView.length === 0 ? (
+                <p className="col-span-3 text-center text-sm text-muted-foreground">
+                  該当する思い出が見つかりません
+                </p>
+              ) : (
+                filteredForView.map((memory, index) => (
                   <motion.div
-                    className="absolute inset-0 flex flex-col justify-end bg-linear-to-t from-black/70 via-transparent to-transparent p-3 text-white pointer-events-none"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: hoveredId === memory.id ? 1 : 0 }}
-                    transition={{ duration: 0.3 }}
+                    key={memory.id}
+                    className="clay-card relative rounded-lg overflow-hidden aspect-4/3 group"
+                    onClick={() => handleMemoryClick(memory)}
+                    onMouseEnter={() => setHoveredId(memory.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.07 }}
                   >
-                    {memory.text_content && (
-                      <motion.p
-                        className="line-clamp-2 font-semibold text-sm mb-1"
-                        initial={{ y: 10, opacity: 0 }}
-                        animate={{
-                          y: hoveredId === memory.id ? 0 : 10,
-                          opacity: hoveredId === memory.id ? 1 : 0,
-                        }}
-                        transition={{ delay: 0.1 }}
-                      >
-                        {memory.text_content}
-                      </motion.p>
-                    )}
-                    <p className="text-xs">
-                      {new Date(memory.memory_date).toLocaleDateString(
-                        "ja-JP",
-                        { year: "numeric", month: "short", day: "numeric" }
+                    <div className="relative w-full h-full">
+                      {memory.media_url && (
+                        <motion.img
+                          src={memory.media_url}
+                          alt="memory"
+                          className="absolute w-full h-full object-cover"
+                          whileHover={{ scale: 1.1 }}
+                        />
                       )}
-                    </p>
-                  </motion.div>
-                </motion.div>
-              ))
-            )}
-          </div>
-        </>
-      )}
+                    </div>
 
-      {/* 詳細モーダル */}
-      <MemoryDetailModal
-        memory={selectedMemory}
-        memories={filteredMemories}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-      />
-    </div>
-    </div>
+                    {/* Mood Emoji Badge */}
+                    {memory.mood_emoji && (
+                      <motion.div
+                        className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full w-10 h-10 flex items-center justify-center shadow-md"
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{
+                          delay: index * 0.1 + 0.3,
+                          type: "spring",
+                          stiffness: 200,
+                          damping: 10,
+                        }}
+                        whileHover={{
+                          scale: 1.2,
+                          rotate: 360,
+                          transition: { duration: 0.5 },
+                        }}
+                      >
+                        {memory.mood_emoji.startsWith("/") ? (
+                          <Image
+                            src={memory.mood_emoji}
+                            alt="Mood"
+                            width={24}
+                            height={24}
+                            className="w-6 h-6"
+                          />
+                        ) : (
+                          <span className="text-2xl">{memory.mood_emoji}</span>
+                        )}
+                      </motion.div>
+                    )}
+
+                    {/* 位置情報アイコン */}
+                    {hasLocation(memory) && (
+                      <motion.div
+                        className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center shadow-md opacity-80"
+                        initial={{ scale: 0, x: -10 }}
+                        animate={{ scale: 1, x: 0 }}
+                        transition={{
+                          delay: index * 0.1 + 0.4,
+                          type: "spring",
+                          stiffness: 200,
+                          damping: 10,
+                        }}
+                      >
+                        <MapPin className="h-4 w-4 text-gray-700" />
+                      </motion.div>
+                    )}
+
+                    {/* Full Card Overlay */}
+                    <motion.div
+                      className="absolute inset-0 flex flex-col justify-end bg-linear-to-t from-black/70 via-transparent to-transparent p-3 text-white pointer-events-none"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: hoveredId === memory.id ? 1 : 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {memory.text_content && (
+                        <motion.p
+                          className="line-clamp-2 font-semibold text-sm mb-1"
+                          initial={{ y: 10, opacity: 0 }}
+                          animate={{
+                            y: hoveredId === memory.id ? 0 : 10,
+                            opacity: hoveredId === memory.id ? 1 : 0,
+                          }}
+                          transition={{ delay: 0.1 }}
+                        >
+                          {memory.text_content}
+                        </motion.p>
+                      )}
+                      <p className="text-xs">
+                        {new Date(memory.memory_date).toLocaleDateString(
+                          "ja-JP",
+                          { year: "numeric", month: "short", day: "numeric" },
+                        )}
+                      </p>
+                    </motion.div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </>
+        )}
+
+        {/* 詳細モーダル */}
+        <MemoryDetailModal
+          memory={selectedMemory}
+          memories={filteredMemories}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+        />
+      </div>
+    </AppLayout>
   );
 }

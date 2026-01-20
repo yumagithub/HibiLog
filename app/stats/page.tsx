@@ -7,7 +7,15 @@ import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, TrendingUp, Calendar, Heart, Flame } from "lucide-react";
+import {
+  TrendingUp,
+  Calendar,
+  Heart,
+  Flame,
+  User as UserIcon,
+} from "lucide-react";
+import { AppLayout } from "@/components/layout/app-layout";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   PieChart,
@@ -49,7 +57,7 @@ export default function StatsPage() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
       2,
-      "0"
+      "0",
     )}`;
   });
 
@@ -114,7 +122,7 @@ export default function StatsPage() {
       const emotionScores = memories
         .map((m: any) => m.emotion_score)
         .filter(
-          (score): score is number => score !== null && score !== undefined
+          (score): score is number => score !== null && score !== undefined,
         );
       const avgEmotionScore =
         emotionScores.length > 0
@@ -131,7 +139,7 @@ export default function StatsPage() {
         "最初の3件:",
         memories
           .slice(0, 3)
-          .map((m: any) => ({ date: m.memory_date, text: m.text_content }))
+          .map((m: any) => ({ date: m.memory_date, text: m.text_content })),
       );
     } catch (error) {
       console.error("統計データの取得エラー:", error);
@@ -163,7 +171,7 @@ export default function StatsPage() {
       const emotionScores = memories
         .map((m: any) => m.emotion_score)
         .filter(
-          (score): score is number => score !== null && score !== undefined
+          (score): score is number => score !== null && score !== undefined,
         );
       const avgEmotionScore =
         emotionScores.length > 0
@@ -180,7 +188,7 @@ export default function StatsPage() {
         "最初の3件:",
         memories
           .slice(0, 3)
-          .map((m: any) => ({ date: m.memory_date, text: m.text_content }))
+          .map((m: any) => ({ date: m.memory_date, text: m.text_content })),
       );
     } catch (error) {
       console.error("統計データの取得エラー:", error);
@@ -191,9 +199,11 @@ export default function StatsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">読み込み中...</p>
-      </div>
+      <AppLayout className="min-h-screen gradient-bg pb-48 md:pb-6">
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-500">読み込み中...</p>
+        </div>
+      </AppLayout>
     );
   }
 
@@ -207,7 +217,7 @@ export default function StatsPage() {
       name: MOOD_LABELS[key] || key,
       value,
       color: MOOD_COLORS[key] || MOOD_COLORS.unknown,
-    })
+    }),
   );
 
   // カスタムツールチップコンポーネント
@@ -238,18 +248,10 @@ export default function StatsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-blue-50 via-purple-50 to-pink-50">
+    <AppLayout className="min-h-screen gradient-bg pb-48 md:pb-6">
       {/* ヘッダー */}
       <header className="bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/")}
-            className="rounded-full"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-900">
               📊 あなたの振り返り統計
@@ -258,6 +260,11 @@ export default function StatsPage() {
               思い出を可視化して、自分を知ろう
             </p>
           </div>
+          <Link href="/account">
+            <Button variant="ghost" size="icon" title="アカウント">
+              <UserIcon className="h-5 w-5" />
+            </Button>
+          </Link>
         </div>
       </header>
 
@@ -383,7 +390,7 @@ export default function StatsPage() {
             {/* 感情スコアの推移 */}
             {memories.some(
               (m: any) =>
-                m.emotion_score !== null && m.emotion_score !== undefined
+                m.emotion_score !== null && m.emotion_score !== undefined,
             ) && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -409,7 +416,7 @@ export default function StatsPage() {
                           ) {
                             const date = new Date(m.memory_date);
                             const monthKey = `${date.getFullYear()}-${String(
-                              date.getMonth() + 1
+                              date.getMonth() + 1,
                             ).padStart(2, "0")}`;
                             months.add(monthKey);
                           }
@@ -440,7 +447,7 @@ export default function StatsPage() {
                             return false;
                           const date = new Date(m.memory_date);
                           const monthKey = `${date.getFullYear()}-${String(
-                            date.getMonth() + 1
+                            date.getMonth() + 1,
                           ).padStart(2, "0")}`;
                           return monthKey === selectedMonth;
                         });
@@ -658,14 +665,14 @@ export default function StatsPage() {
           </div>
         </div>
       </main>
-    </div>
+    </AppLayout>
   );
 
   // ヘルパー関数
   function getTopMood() {
     if (moodChartData.length === 0) return null;
     const top = moodChartData.reduce((prev, current) =>
-      prev.value > current.value ? prev : current
+      prev.value > current.value ? prev : current,
     );
     return top.name;
   }
@@ -673,7 +680,7 @@ export default function StatsPage() {
   function getTopWeekday() {
     if (!stats || stats.weekdayData.length === 0) return null;
     const top = stats.weekdayData.reduce((prev, current) =>
-      prev.count > current.count ? prev : current
+      prev.count > current.count ? prev : current,
     );
     return top.count > 0 ? top.day : null;
   }

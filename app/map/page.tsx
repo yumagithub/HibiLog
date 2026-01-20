@@ -4,14 +4,16 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { MemoryMap } from "@/components/memory/memory-map";
+import { MapPin, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MapPin } from "lucide-react";
-import type { User } from "@supabase/supabase-js";
+import { AppLayout } from "@/components/layout/app-layout";
+import Link from "next/link";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 export default function MapPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,9 +37,11 @@ export default function MapPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">読み込み中...</p>
-      </div>
+      <AppLayout className="min-h-screen gradient-bg pb-48 md:pb-6">
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-500">読み込み中...</p>
+        </div>
+      </AppLayout>
     );
   }
 
@@ -46,18 +50,10 @@ export default function MapPage() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-blue-50 via-purple-50 to-pink-50">
+    <AppLayout className="min-h-screen gradient-bg pb-48 md:pb-6">
       {/* ヘッダー */}
       <header className="bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/")}
-            className="rounded-full"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <MapPin className="h-6 w-6 text-blue-600" />
             <div>
@@ -67,6 +63,11 @@ export default function MapPage() {
               </p>
             </div>
           </div>
+          <Link href="/account">
+            <Button variant="ghost" size="icon" title="アカウント">
+              <User className="h-5 w-5" />
+            </Button>
+          </Link>
         </div>
       </header>
 
@@ -86,6 +87,6 @@ export default function MapPage() {
           </ul>
         </div>
       </main>
-    </div>
+    </AppLayout>
   );
 }
