@@ -206,8 +206,16 @@ function BakuModelFromFile({
   );
 }
 
+const DEFAULT_SIZE = 30;
+
 export function Baku3DWithModel() {
-  const { status, hunger } = useBakuStore();
+  const { status, hunger, size, setSize } = useBakuStore();
+
+  useEffect(() => {
+    if (hunger === 0 && size !== DEFAULT_SIZE) {
+      setSize(DEFAULT_SIZE);
+    }
+  }, [hunger, size, setSize, DEFAULT_SIZE]);
 
   return (
     <div className="w-full h-80 rounded-xl overflow-hidden bg-linear-to-b from-blue-50 to-purple-50 relative">
@@ -261,6 +269,14 @@ export function Baku3DWithModel() {
               style={{ width: `${hunger}%` }}
             />
           </div>
+        </div>
+      </div>
+      {/* サイズ表示（左上） */}
+      <div className="absolute top-4 left-4">
+        <div className="bg-white/80 backdrop-blur-sm rounded-lg px-3 py-1 shadow-sm">
+          <span className="text-xs font-medium text-gray-700">
+            サイズ: {typeof size === "number" ? size.toFixed(1) : "-"} cm
+          </span>
         </div>
       </div>
     </div>

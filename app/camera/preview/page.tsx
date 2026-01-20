@@ -240,7 +240,7 @@ export default function CameraPreviewPage() {
       try {
         const { data: profile, error: profileError } = await supabase
           .from("baku_profiles")
-          .select("hunger_level")
+          .select("hunger_level, size")
           .eq("user_id", user.id)
           .single();
 
@@ -249,20 +249,26 @@ export default function CameraPreviewPage() {
         }
 
         if (profile) {
-          const currentHunger = profile.hunger_level;
+          const currentHunger = profile.hunger_level ?? 50;
+          const currentSize = profile.size ?? 30;
+
           const newHungerLevel = Math.min(100, currentHunger + 20);
+          const newSize = currentSize + 0.5;
+
           const { error: updateError } = await supabase
             .from("baku_profiles")
             .update({
               hunger_level: newHungerLevel,
+              size: newSize,
               last_fed_at: new Date().toISOString(),
             })
             .eq("user_id", user.id);
+
           if (updateError) throw updateError;
         }
       } catch (error) {
         console.error(
-          "バクの空腹度の更新に失敗しました:",
+          "バクのステータス更新に失敗しました:",
           (error as Error).message,
         );
       }

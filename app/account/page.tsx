@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { BottomNav } from "@/components/navigation/bottom-nav";
 import { SidebarNav } from "@/components/navigation/sidebar-nav";
-import { User, Mail, Calendar, LogOut, ArrowLeft } from "lucide-react";
+import { User, Mail, Calendar, LogOut, ArrowLeft, Lock } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 export default function AccountPage() {
@@ -18,6 +18,76 @@ export default function AccountPage() {
   const supabase = createClient();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwMessage, setPwMessage] = useState<string | null>(null);
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [currentPassword, setCurrentPassword] = useState("");
+
+  const handleChangePassword = async () => {
+    setPwMessage(null);
+    setPwError(null);
+
+    if (!newPassword || !confirmPassword) {
+      setPwError("新しいパスワードを入力してください");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwError("パスワードが一致してないです");
+      return;
+    }
+
+    try {
+      setPwSaving(true);
+
+      if (!currentPassword) {
+        setPwError("現在のパスワードを入力してください");
+        return;
+      }
+
+      const email = user?.email;
+      if (!email) {
+        setPwError("メールアドレスが取得できませんでした。");
+        return;
+      }
+
+      const { error: reauthError } = await supabase.auth.signInWithPassword({
+        email,
+        password: currentPassword,
+      });
+
+      if (reauthError) {
+        setPwError("現在のパスワードが正しくありません。");
+        return;
+      }
+
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+      if (error) {
+        const msg = error.message.toLowerCase();
+      
+        if (msg.includes("different from the old password")) {
+          setPwError("現在のパスワードとは異なるものを設定してください。");
+        } else if (msg.includes("recent")) {
+          setPwError("セキュリティのため、もう一度ログインしてからお試しください。");
+        } else {
+          setPwError(error.message);
+        }
+        return;
+      }
+      
+      
+      setPwMessage("パスワードが変更されました");
+      setNewPassword("");
+      setConfirmPassword("");
+      setCurrentPassword("");
+      
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
 
   useEffect(() => {
     const getUser = async () => {
@@ -48,6 +118,9 @@ export default function AccountPage() {
       </div>
     );
   }
+  const provider = user?.app_metadata?.provider ?? "unknown";
+  const canChangePassword = provider === "email";
+  
 
   if (!user) {
     return null;
@@ -110,9 +183,7 @@ export default function AccountPage() {
                   認証方法
                 </Label>
                 <div className="clay-input p-3">
-                  <p className="text-sm capitalize">
-                    {user.app_metadata.provider || "email"}
-                  </p>
+                  <p className="text-sm capitalize">{provider}</p>
                 </div>
               </div>
 
@@ -212,7 +283,70 @@ export default function AccountPage() {
                     </div>
                   </div>
                 )}
+              {/* パスワード変更 (emailだけ) */}
+              {canChangePassword && (
+                <div className="pt-4 border-t space-y-3">
+                  <Label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Lock className="h-4 w-4" />
+                    パスワード変更
+                  </Label>
+                  <div className="space-y-2">
+                    <Label className="text-sm">現在のパスワード</Label>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="w-full clay-input p-3"
+                      placeholder="現在のパスワード"
+                      autoComplete="current-password"
+                    />
+                  </div>
 
+                  <div className="space-y-2">
+                    <Label className="text-sm">新しいパスワード</Label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full clay-input p-3"
+                      placeholder="新しいパスワード"
+                      autoComplete="new-password"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">新しいパスワード（確認）</Label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full clay-input p-3"
+                      placeholder="新しいパスワード（確認）"
+                      autoComplete="new-password"
+                    />
+                  </div>
+
+                  {pwError && (
+                    <Alert>
+                      <AlertDescription className="text-sm">{pwError}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  {pwMessage && (
+                    <Alert>
+                      <AlertDescription className="text-sm">{pwMessage}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Button
+                    onClick={handleChangePassword}
+                    disabled={pwSaving}
+                    className="w-full"
+                  >
+                    {pwSaving ? "変更中..." : "パスワードを変更"}
+                  </Button>
+                </div>
+              )}
               {/* Sign Out Button */}
               <div className="pt-4 border-t">
                 <Button
