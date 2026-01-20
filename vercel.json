@@ -1,18 +1,4 @@
 {
   "buildCommand": "next build",
-  "framework": "nextjs",
-  "crons": [
-    {
-      "path": "/api/cron/hunger-check",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/daily-reminder",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/random-prompt",
-      "schedule": "30 11 * * *"
-    }
-  ]
+  "framework": "nextjs"
 }

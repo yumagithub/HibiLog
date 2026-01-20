@@ -1,0 +1,48 @@
+name: Scheduled Cron Jobs
+
+on:
+  schedule:
+    # Every hour - run hunger check and daily reminder
+    - cron: "0 * * * *"
+  workflow_dispatch: # Manual trigger for testing
+
+permissions:
+  contents: read
+
+jobs:
+  run-crons:
+    name: Run Cron Jobs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hunger Check
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "https://hibi-log.vercel.app/api/cron/hunger-check"
+        continue-on-error: true
+
+      - name: Daily Reminder
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "https://hibi-log.vercel.app/api/cron/daily-reminder"
+        continue-on-error: true
+
+      - name: Random Prompt (11:30 JST)
+        run: |
+          # Check if current time in JST is 11:30-11:59
+          CURRENT_HOUR_JST=$(TZ='Asia/Tokyo' date +%H)
+          CURRENT_MIN_JST=$(TZ='Asia/Tokyo' date +%M)
+
+          if [ "$CURRENT_HOUR_JST" == "11" ] && [ "$CURRENT_MIN_JST" -ge 30 ]; then
+            echo "Running random prompt at 11:30 JST"
+            curl -X POST \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              -H "Content-Type: application/json" \
+              "https://hibi-log.vercel.app/api/cron/random-prompt"
+          else
+            echo "Skipped random prompt (current JST time: ${CURRENT_HOUR_JST}:${CURRENT_MIN_JST})"
+          fi
+        continue-on-error: true
