@@ -17,6 +17,7 @@ import { useBakuStore } from "@/lib/store";
 import { MOOD_OPTIONS, type MoodOption } from "@/lib/mood-emojis";
 import { motion, AnimatePresence } from "framer-motion";
 import type { GeolocationData } from "@/lib/types";
+import { checkAndSendAchievementNotification } from "@/app/actions";
 
 export default function CameraPreviewPage() {
   const supabase = createClient();
@@ -28,7 +29,7 @@ export default function CameraPreviewPage() {
   const [loading, setLoading] = useState(true);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [memoryDate, setMemoryDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [textContent, setTextContent] = useState("");
   const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
@@ -161,7 +162,7 @@ export default function CameraPreviewPage() {
       if (uploadError) {
         console.error("ストレージアップロードエラー:", uploadError);
         throw new Error(
-          `ストレージへのアップロードに失敗しました: ${uploadError.message}`
+          `ストレージへのアップロードに失敗しました: ${uploadError.message}`,
         );
       }
 
@@ -191,7 +192,7 @@ export default function CameraPreviewPage() {
               sample: textContent || selectedMood.label,
             }),
             signal: controller.signal,
-          }
+          },
         );
         clearTimeout(timeoutId);
 
@@ -231,7 +232,7 @@ export default function CameraPreviewPage() {
         console.error("データベース挿入エラー:", insertError);
         console.error("ユーザーID:", user.id);
         throw new Error(
-          `データベースへの保存に失敗しました: ${insertError.message}`
+          `データベースへの保存に失敗しました: ${insertError.message}`,
         );
       }
 
@@ -262,7 +263,7 @@ export default function CameraPreviewPage() {
       } catch (error) {
         console.error(
           "バクの空腹度の更新に失敗しました:",
-          (error as Error).message
+          (error as Error).message,
         );
       }
 
@@ -271,6 +272,14 @@ export default function CameraPreviewPage() {
 
       // ストリーク再計算をトリガー
       window.dispatchEvent(new Event("memoryAdded"));
+
+      // 達成通知をチェック
+      try {
+        await checkAndSendAchievementNotification(user.id);
+      } catch (error) {
+        console.error("Achievement notification failed:", error);
+        // 通知失敗してもメモリー投稿は成功しているので続行
+      }
 
       // 成功！
       setMessage({
