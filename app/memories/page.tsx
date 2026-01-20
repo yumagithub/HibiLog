@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useBakuStore } from "@/lib/store";
 import { Card } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import {
   AlertTriangle,
   Grid3x3,
   CalendarDays,
+  ArrowLeft,
   MapPin,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
@@ -53,7 +55,8 @@ export type Memory = {
   address: string | null;
 };
 
-export function MemoriesTab({ user }: { user: User | null }) {
+export default function MemoriesPage() {
+  const [user, setUser] = useState<User | null>(null);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +80,14 @@ export function MemoriesTab({ user }: { user: User | null }) {
   const supabase = createClient();
   const localMemories = useBakuStore((state) => state.memories);
 
+  useEffect(() => {
+  const getUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setUser(session?.user ?? null);
+  };
+  getUser();
+}, [supabase]);
+  
   // 🎞 メモリー取得 (Supabase or Local)
   useEffect(() => {
     const fetchMemories = async () => {
@@ -153,7 +164,13 @@ export function MemoriesTab({ user }: { user: User | null }) {
 
   const handleMemoryClick = (memory: Memory) => {
     setSelectedMemory(memory);
-    setFilteredMemories(filteredForView);
+    if (viewMode === "calendar") {
+    // カレンダーの時は「古い順」にする（右スライドで未来へ）
+        setFilteredMemories([...memories].reverse());
+      } else {
+        // グリッドの時はそのまま（新しい順）
+        setFilteredMemories(filteredForView);
+      }
     setIsModalOpen(true);
   };
 
@@ -166,12 +183,20 @@ export function MemoriesTab({ user }: { user: User | null }) {
     return <Card className="p-12 text-center clay-input">読み込み中...</Card>;
 
   if (error)
-    return (
-      <Card className="p-12 text-center clay-input border-destructive">
-        <AlertTriangle className="h-16 w-16 text-destructive" />
-        <p className="mt-2 text-destructive">{error}</p>
-      </Card>
-    );
+  return (
+    <Card className="p-12 text-center clay-input border-destructive">
+      <AlertTriangle className="h-16 w-16 text-destructive mx-auto" />
+      <p className="mt-2 text-destructive">{error}</p>
+      {/* 再試行ボタンの追加 */}
+      <Button 
+        variant="outline" 
+        className="mt-4"
+        onClick={() => window.location.reload()} // ページをリロードさせる
+      >
+        もう一度試す
+      </Button>
+    </Card>
+  );
 
   if (memories.length === 0)
     return (
@@ -194,7 +219,16 @@ export function MemoriesTab({ user }: { user: User | null }) {
     : "日付";
 
   return (
-    <>
+        <div className="min-h-screen gradient-bg">
+          <div className="container max-w-md mx-auto px-4 py-6">
+            <header className="flex items-center gap-3 mb-4">
+              <Button asChild variant="outline" size="icon-sm">
+                <Link href="/">
+                  <ArrowLeft />
+                </Link>
+              </Button>
+              <h1 className="text-2xl font-bold">思い出</h1>
+            </header>
       {/* 📅 ビュー切替 */}
       <div className="flex justify-end gap-2 mb-4">
         <Button
@@ -456,6 +490,7 @@ export function MemoriesTab({ user }: { user: User | null }) {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
       />
-    </>
+    </div>
+    </div>
   );
 }

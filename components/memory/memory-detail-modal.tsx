@@ -77,7 +77,7 @@ export function MemoryDetailModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-4xl w-full max-h-[90vh] p-0 gap-0 overflow-hidden flex flex-col"
+        className="max-w-4xl w-full max-h-[90vh] p-0 gap-0 overflow-hidden flex flex-col [&>button:last-child]:hidden"
         onKeyDown={handleKeyDown}
         aria-describedby="memory-description"
         style={{ display: "flex", flexDirection: "column", maxHeight: "90vh" }}
@@ -134,22 +134,39 @@ export function MemoryDetailModal({
             }}
           >
             {currentMemory.media_url ? (
-              <img
-                key={currentMemory.id}
-                src={currentMemory.media_url}
-                alt={currentMemory.text_content || "Memory"}
-                style={{
-                  maxWidth: "100%",
-                  maxHeight: "100%",
-                  width: "auto",
-                  height: "auto",
-                }}
-              />
+              <AnimatePresence mode="wait"> {/* 2. 切り替えアニメーション用 */}
+                <motion.img
+                  key={currentMemory.id}
+                  src={currentMemory.media_url}
+                  alt={currentMemory.text_content || "Memory"}
+                  // --- スワイプ機能追加 ---
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.6}
+                  onDragEnd={(e, { offset, velocity }) => {
+                    const swipeThreshold = 50;
+                    if (offset.x < -swipeThreshold && hasNext) goToNext();
+                    else if (offset.x > swipeThreshold && hasPrevious) goToPrevious();
+                  }}
+                  // --- アニメーション設定 ---
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  // --- スタイル維持 + スマホ最適化 ---
+                  className="touch-none cursor-grab active:cursor-grabbing"
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "100%",
+                    width: "auto",
+                    height: "auto",
+                  }}
+                />
+              </AnimatePresence>
             ) : (
               <div className="text-white text-center">画像がありません</div>
             )}
           </div>
-
           {/* 詳細情報エリア */}
           <div className="flex-1 bg-white overflow-y-auto flex flex-col min-h-0">
             <div className="p-6 space-y-4">

@@ -15,6 +15,8 @@ import { useBakuStore } from "@/lib/store";
 import type { Group, AnimationAction } from "three";
 import { Vector3, MathUtils } from "three";
 import { GLBAnimationChecker } from "@/components/dev/glb-animation-checker";
+import Image from "next/image";
+import { createClient } from "@/lib/supabase/client"; // プロジェクトのパスに合わせて調整してください
 
 type BehaviorState = "Idle" | "Walking";
 
@@ -27,6 +29,9 @@ function BakuModelFromFile({
   hunger: number;
 }) {
   const groupRef = useRef<Group>(null);
+
+  // ★ 追加：メニューの状態をストアから取得
+  const isMenuOpen = useBakuStore((state) => state.isMenuOpen);
 
   // 動作状態管理
   const [behavior, setBehavior] = useState<BehaviorState>("Idle");
@@ -137,6 +142,7 @@ function BakuModelFromFile({
   // フレーム毎の更新処理
   useFrame((state, delta) => {
     if (!groupRef.current) return;
+    if (isMenuOpen) return; // メニューが開いている間は動作停止  
     const group = groupRef.current;
 
     // アニメーションミキサーの更新（getDeltaは1回のみ）
@@ -209,7 +215,8 @@ function BakuModelFromFile({
 const DEFAULT_SIZE = 30;
 
 export function Baku3DWithModel() {
-  const { status, hunger, size, setSize } = useBakuStore();
+
+ const { status, hunger, memories, size, setSize } = useBakuStore();
 
   useEffect(() => {
     if (hunger === 0 && size !== DEFAULT_SIZE) {
@@ -217,13 +224,56 @@ export function Baku3DWithModel() {
     }
   }, [hunger, size, setSize, DEFAULT_SIZE]);
 
+  const [latestMemory, setLatestMemory] = useState<{ media_url: string } | null>(null);
+  const supabase = createClient();
+
+  // 最新の画像を取得
+  useEffect(() => {
+    const fetchLatestMemory = async () => {
+          // 1. セッションからユーザー情報を取得
+          const { data: { session } } = await supabase.auth.getSession();
+          const user = session?.user;
+
+          if (user) {
+            // --- ログイン済み：自分の最新画像をSupabaseから取得 ---
+            const { data, error } = await supabase
+              .from("memories")
+              .select("media_url")
+              .eq("user_id", user.id)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (data) {
+              setLatestMemory(data);
+              return; // 取得できたら終了
+            }
+          }
+
+          // --- ゲストモード or Supabaseに画像がない場合：Zustand(LocalStorage)から取得 ---
+          if (memories && memories.length > 0) {
+            // 配列の最後（最新）の要素を取得
+            const lastLocalMemory = memories[memories.length - 1];
+            setLatestMemory({ media_url: lastLocalMemory.imageUrl });
+          } else {
+            // 画像がどこにもない場合
+            setLatestMemory(null);
+          }
+        };
+
+        fetchLatestMemory();
+        
+        // memoriesが更新された時（投稿直後など）にも再実行されるように依存配列に追加
+      }, [supabase, memories]);
+
   return (
-    <div className="w-full h-80 rounded-xl overflow-hidden bg-linear-to-b from-blue-50 to-purple-50 relative">
+    <div className="relative w-full h-[100vh] min-h-[600px] rounded-xl overflow-hidden bg-linear-to-b from-blue-50 to-purple-50 relative">
       {/* デバッグ用：開発環境でのみアニメーション情報を出力 */}
       {process.env.NODE_ENV === "development" && <GLBAnimationChecker />}
-
+      <div className="absolute inset-0 z-0 h-full w-full">
       <Canvas
-        camera={{ position: [0, 5, 20], fov: 50 }}
+        resize={{ scroll: false, debounce: { scroll: 50, resize: 50 } }}
+        camera={{ position: [0, 5, 30], fov: 50 }}
         shadows
         frameloop="always"
         gl={{ preserveDrawingBuffer: true }}
@@ -253,10 +303,23 @@ export function Baku3DWithModel() {
           autoRotateSpeed={2}
         />
       </Canvas>
+      </div>
 
       {/* 空腹度表示 */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-3/4">
-        <div className="bg-white/80 backdrop-blur-sm rounded-full p-2">
+      {/* シンプルな横並びレイアウト */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[90%] flex items-center gap-3 z-10 pointer-events-none">
+        
+        {/* メーターの左：直近の写真 */}
+        {latestMemory && (
+          <div className="w-12 h-16 flex-shrink-0 rounded-md overflow-hidden border border-white shadow-md">
+            <img 
+              src={latestMemory.media_url} 
+              alt="最新の思い出" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+        <div className="flex-1 bg-white/80 backdrop-blur-sm rounded-full p-2">
           <div className="flex items-center justify-between mb-1 px-2">
             <span className="text-xs font-medium text-gray-700">
               空腹度: {Math.round(hunger)}%
@@ -272,7 +335,7 @@ export function Baku3DWithModel() {
         </div>
       </div>
       {/* サイズ表示（左上） */}
-      <div className="absolute top-4 left-4">
+      <div className="absolute top-20 right-10">
         <div className="bg-white/80 backdrop-blur-sm rounded-lg px-3 py-1 shadow-sm">
           <span className="text-xs font-medium text-gray-700">
             サイズ: {typeof size === "number" ? size.toFixed(1) : "-"} cm

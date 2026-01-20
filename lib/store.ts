@@ -28,6 +28,7 @@ interface BakuStore {
   notificationsEnabled: boolean;
   notificationInterval: number;
   activeView: View;
+  isMenuOpen: boolean;
 
   feedBaku: (moodCategory?: string, hasText?: boolean) => void;
   setSize: (size: number) => void;
@@ -38,6 +39,8 @@ interface BakuStore {
   toggleNotifications: () => void;
   setNotificationInterval: (interval: number) => void;
   setActiveView: (view: View) => void;
+  setIsMenuOpen: (open: boolean) => void;
+  toggleMenu: () => void;
 }
 
 const calculateStatus = (hunger: number): BakuStatus => {
@@ -170,9 +173,15 @@ export const useBakuStore = create<BakuStore>()(
         set({ activeView: view });
       },
 
+
       setSize: (size) => {
         set({ size });
       },
+
+      isMenuOpen: false,
+      setIsMenuOpen: (open) => set({ isMenuOpen: open }),
+      toggleMenu: () => set((state) => ({ isMenuOpen: !state.isMenuOpen })),
+
     }),
     {
       name: "hibilog-storage",
