@@ -8,7 +8,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { BottomNav } from "@/components/navigation/bottom-nav";
 import { SidebarNav } from "@/components/navigation/sidebar-nav";
 import { User, Mail, Calendar, LogOut, ArrowLeft, Lock } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -370,8 +369,6 @@ export default function AccountPage() {
         </main>
       </div>
 
-      {/* スマホ用ボトムナビゲーション */}
-      <BottomNav />
     </>
   );
 }

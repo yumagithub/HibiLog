@@ -1,11 +1,6 @@
 "use client";
 
-import type { User } from "@supabase/supabase-js";
-import { useBakuStore } from "@/lib/store";
 import { BakuDisplay } from "@/components/baku/baku-display";
-import { MemoriesTab } from "@/components/memory/memories-tab";
-import { SettingsTab } from "@/components/memory/settings-tab";
-import { BottomNav } from "@/components/navigation/bottom-nav";
 import { SidebarNav } from "@/components/navigation/sidebar-nav";
 import { HungerDebugPanel } from "@/components/baku/hunger-debug-panel";
 import { Button } from "@/components/ui/button";
@@ -16,21 +11,7 @@ import { useStreaksCalculator } from "@/lib/hooks/useStreaksCalculator";
 import { useBakuProfileSync } from "@/lib/hooks/useBakuProfileSync";
 import { Skeleton } from "../ui/skeleton";
 import { StreakCard } from "../streak/streak-card";
-
-const CurrentView = ({ user }: { user: User | null }) => {
-  const activeView = useBakuStore((state) => state.activeView);
-
-  switch (activeView) {
-    case "upload":
-      return <MemoriesTab user={user} />;
-    case "memories":
-      return <MemoriesTab user={user} />;
-    case "settings":
-      return <SettingsTab user={user} />;
-    default:
-      return <MemoriesTab user={user} />;
-  }
-};
+import { SlidingMenu } from "@/components/navigation/sliding-menu";
 
 export function HibiLogClient() {
   const { user, userId, loading, handleLogout, showHighlight, closeHighlight } =
@@ -48,10 +29,10 @@ export function HibiLogClient() {
           <SidebarNav />
 
           {/* メインコンテンツ */}
-          <main className="min-h-screen gradient-bg pb-24 md:pb-6">
-            <div className="container max-w-md md:max-w-full mx-auto px-4 md:px-6 py-6">
+          <main className="max-w h-screen overflow-hidden gradient-bg mx-auto px-6 pb-24 md:pb-6">
+            {/* <div className="container max-w-md md:max-w-full mx-auto px-4 md:px-6 py-6"> */}
               {/* Header Skeleton */}
-              <header className="text-center mb-8 relative">
+              <header className="text-center mb-2 relative">
                 <Skeleton className="h-10 w-48 mx-auto mb-2" />
                 <Skeleton className="h-4 w-64 mx-auto" />
               </header>
@@ -60,15 +41,6 @@ export function HibiLogClient() {
               <div className="space-y-4">
                 {/* Alert の場所確保 */}
                 <div className="h-12" />
-
-                {/* 3D表示エリアのスケルトン */}
-                <div className="w-full h-80 rounded-xl bg-linear-to-b from-blue-50 to-purple-50 flex items-center justify-center">
-                  <div className="animate-pulse space-y-3 text-center">
-                    <div className="w-32 h-32 rounded-full bg-gray-300/50 mx-auto" />
-                    <div className="h-4 w-24 bg-gray-300/50 mx-auto rounded" />
-                  </div>
-                </div>
-              </div>
 
               {/* ストリーク表示スケルトン */}
               <div className="mt-6 clay-card p-6">
@@ -84,17 +56,17 @@ export function HibiLogClient() {
                 </div>
               </div>
 
-              {/* Content Area Skeleton */}
-              <div className="mt-8 space-y-4">
-                <Skeleton className="h-64 w-full rounded-xl" />
-                <Skeleton className="h-32 w-full rounded-xl" />
+                {/* 3D表示エリアのスケルトン */}
+                <div className="w-full h-180 rounded-xl overflow-hidden bg-linear-to-b from-blue-50 to-purple-50 relative">
+                  <div className="animate-pulse space-y-3 text-center">
+                    <div className="w-32 h-32 rounded-full bg-gray-300/50 mx-auto" />
+                    <div className="h-4 w-24 bg-gray-300/50 mx-auto rounded" />
+                  </div>
+                </div>
               </div>
-            </div>
           </main>
         </div>
 
-        {/* スマホ用ボトムナビゲーション */}
-        <BottomNav />
       </>
     );
   }
@@ -106,10 +78,9 @@ export function HibiLogClient() {
         <SidebarNav />
 
         {/* メインコンテンツ */}
-        <main className="min-h-screen gradient-bg pb-24 md:pb-6">
-          <div className="container max-w-md md:max-w-full mx-auto px-4 md:px-6 py-6">
-            {/* Header */}
-            <header className="text-center mb-8 relative">
+        <main className="max-w h-screen overflow-hidden gradient-bg mx-auto px-6 pb-24 md:pb-6 relative">
+         {/* Header */}
+            <header className="text-center mb-2 relative">
               {loading ? (
                 <>
                   <Skeleton className="h-10 w-48 mx-auto mb-2" />
@@ -145,9 +116,7 @@ export function HibiLogClient() {
               )}
             </header>
 
-            {/* Baku Character Display */}
-            <BakuDisplay />
-
+            
             {/* ストリーク表示 */}
             <StreakCard
               loading={loading}
@@ -155,16 +124,13 @@ export function HibiLogClient() {
               longestStreak={longestStreak}
             />
 
-            {/* Content Area */}
-            <div className="mt-8">
-              <CurrentView user={user} />
-            </div>
-          </div>
-        </main>
-      </div>
+            <BakuDisplay />
+            <SlidingMenu />
 
-      {/* スマホ用ボトムナビゲーション */}
-      <BottomNav />
+        </main>
+        
+        
+      </div>
 
       {/* 月ハイライトモーダル */}
       {showHighlight && (

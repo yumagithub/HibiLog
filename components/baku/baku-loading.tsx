@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 
 export default function BakuLoading() {
   return (
-    <div className="w-full h-80 rounded-xl overflow-hidden bg-linear-to-b from-blue-50 to-purple-50 relative">
+    <div className="w-full h-180 rounded-xl overflow-hidden bg-linear-to-b from-blue-50 to-purple-50 relative">
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
         <motion.div
           animate={{ y: [0, -8, 0] }}
