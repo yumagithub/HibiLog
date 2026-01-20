@@ -2,74 +2,47 @@ name: Scheduled Cron Jobs
 
 on:
   schedule:
-    # Hunger check: every hour at minute 0
+    # Every hour - run hunger check and daily reminder
     - cron: "0 * * * *"
-    # Daily reminder: every hour at minute 0 (same as hunger check)
-    - cron: "0 * * * *"
-    # Random prompt: 11:30 JST (02:30 UTC)
-    - cron: "30 2 * * *"
   workflow_dispatch: # Manual trigger for testing
 
+permissions:
+  contents: read
+
 jobs:
-  hunger-check:
-    name: Hunger Check
+  run-crons:
+    name: Run Cron Jobs
     runs-on: ubuntu-latest
     steps:
-      - name: Run hunger check
+      - name: Hunger Check
         run: |
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            "${{ secrets.APP_URL }}/api/cron/hunger-check"
-        env:
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          APP_URL: ${{ secrets.APP_URL }}
+            "https://hibi-log.vercel.app/api/cron/hunger-check"
+        continue-on-error: true
 
-  daily-reminder:
-    name: Daily Reminder
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run daily reminder
+      - name: Daily Reminder
         run: |
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            "${{ secrets.APP_URL }}/api/cron/daily-reminder"
-        env:
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          APP_URL: ${{ secrets.APP_URL }}
+            "https://hibi-log.vercel.app/api/cron/daily-reminder"
+        continue-on-error: true
 
-  random-prompt:
-    name: Random Prompt (Daily at 11:30 JST)
-    runs-on: ubuntu-latest
-    # Only run at 02:30 UTC (11:30 JST)
-    # GitHub Actions schedules are in UTC, so we schedule at 30 2 * * *
-    steps:
-      - name: Check if this is the right time (11:30 JST)
-        id: check_time
+      - name: Random Prompt (11:30 JST)
         run: |
-          # Get current time in JST (UTC+9)
+          # Check if current time in JST is 11:30-11:59
           CURRENT_HOUR_JST=$(TZ='Asia/Tokyo' date +%H)
           CURRENT_MIN_JST=$(TZ='Asia/Tokyo' date +%M)
 
-          # Only proceed if it's between 11:30-11:59 JST
           if [ "$CURRENT_HOUR_JST" == "11" ] && [ "$CURRENT_MIN_JST" -ge 30 ]; then
-            echo "run=true" >> $GITHUB_OUTPUT
+            echo "Running random prompt at 11:30 JST"
+            curl -X POST \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              -H "Content-Type: application/json" \
+              "https://hibi-log.vercel.app/api/cron/random-prompt"
           else
-            echo "run=false" >> $GITHUB_OUTPUT
+            echo "Skipped random prompt (current JST time: ${CURRENT_HOUR_JST}:${CURRENT_MIN_JST})"
           fi
-
-      - name: Run random prompt
-        if: steps.check_time.outputs.run == 'true'
-        run: |
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -H "Content-Type: application/json" \
-            "${{ secrets.APP_URL }}/api/cron/random-prompt"
-        env:
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          APP_URL: ${{ secrets.APP_URL }}
-
-      - name: Skip random prompt (not 11:30 JST)
-        if: steps.check_time.outputs.run != 'true'
-        run: echo "Skipped random prompt (not 11:30 JST yet)"
+        continue-on-error: true
