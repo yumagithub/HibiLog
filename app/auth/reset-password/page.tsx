@@ -1,4 +1,4 @@
-app/auth/
+// ./app/auth/
 "use client";
 
 import { useEffect, useState } from "react";
