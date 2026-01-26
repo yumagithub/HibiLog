@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { MapPin, User as UserIcon } from "lucide-react";
+import { HeaderAccountButton } from "@/components/navigation/header-account-button";
 import {
   Bell,
   Check,
@@ -260,7 +261,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <AppLayout className="min-h-screen gradient-bg pb-48 md:pb-6">
-        <div className="container max-w-md mx-auto px-4 py-6">
+        <div className="container max-w-md md:max-w-2xl mx-auto px-4 py-6">
           <Card className="p-12 text-center clay-input w-full">
             <p className="text-muted-foreground animate-pulse">読み込み中...</p>
           </Card>
@@ -273,7 +274,7 @@ export default function SettingsPage() {
   if (error) {
     return (
       <AppLayout className="min-h-screen gradient-bg pb-48 md:pb-6">
-        <div className="container max-w-md mx-auto px-4 py-6">
+        <div className="container max-w-md md:max-w-2xl mx-auto px-4 py-6">
           <Card className="p-12 text-center clay-input border-destructive w-full">
             <AlertTriangle className="h-16 w-16 text-destructive mx-auto" />
             <p className="mt-4 text-destructive font-medium">{error}</p>
@@ -295,14 +296,10 @@ export default function SettingsPage() {
 
   return (
     <AppLayout className="min-h-screen gradient-bg pb-48 md:pb-6">
-      <div className="container max-w-md mx-auto px-4 py-6">
+      <div className="container max-w-md md:max-w-2xl mx-auto px-4 py-6">
         <header className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">設定</h1>
-          <Link href="/account">
-            <Button variant="ghost" size="icon" title="アカウント">
-              <UserIcon className="h-5 w-5" />
-            </Button>
-          </Link>
+          <HeaderAccountButton />
         </header>
         <Card className="p-6 space-y-6">
           {/* ゲストユーザー向けアップグレード通知 */}

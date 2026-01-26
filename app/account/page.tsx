@@ -129,7 +129,7 @@ export default function AccountPage() {
 
   return (
     <AppLayout className="min-h-screen gradient-bg pb-48 md:pb-6">
-      <div className="container max-w-md md:max-w-full mx-auto px-4 md:px-6 py-6">
+      <div className="container max-w-md md:max-w-2xl mx-auto px-4 md:px-6 py-6">
         {/* Header */}
         <header className="mb-8">
           <h1 className="text-4xl font-bold text-foreground">アカウント情報</h1>
