@@ -10,6 +10,7 @@ import {
   Atom,
   BarChart3,
   MapPin,
+  ChevronUp, // 矢印を追加
 } from "lucide-react";
 import Link from "next/link";
 
