@@ -8,6 +8,7 @@ import { MapPin, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/layout/app-layout";
 import Link from "next/link";
+import { HeaderAccountButton } from "@/components/navigation/header-account-button";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 export default function MapPage() {
@@ -63,11 +64,7 @@ export default function MapPage() {
               </p>
             </div>
           </div>
-          <Link href="/account">
-            <Button variant="ghost" size="icon" title="アカウント">
-              <User className="h-5 w-5" />
-            </Button>
-          </Link>
+          <HeaderAccountButton />
         </div>
       </header>
 

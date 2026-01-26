@@ -18,7 +18,7 @@ const Baku3DWithModel = dynamic(
   {
     ssr: false,
     loading: () => <BakuLoading />,
-  }
+  },
 );
 
 type BakuStatus = "healthy" | "normal" | "hungry" | "critical";
@@ -32,6 +32,7 @@ const statusMessages: Record<BakuStatus, string> = {
 
 export function BakuDisplay() {
   const { hunger, status } = useBakuStore();
+  const MotionAlertTriangle = motion(AlertTriangle);
 
   return (
     <motion.div
@@ -48,14 +49,14 @@ export function BakuDisplay() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: -20 }}
             transition={{ type: "spring", stiffness: 300 }}
+            className="mt-4"
           >
             <Alert variant="destructive">
-              <motion.div
+              <MotionAlertTriangle
+                className="h-4 w-4"
                 animate={{ rotate: [0, -10, 10, -10, 0] }}
                 transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 1 }}
-              >
-                <AlertTriangle className="h-4 w-4" />
-              </motion.div>
+              />
               <AlertDescription className="font-medium">
                 {statusMessages.critical}
               </AlertDescription>

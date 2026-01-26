@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/app-layout";
 import Link from "next/link";
+import { HeaderAccountButton } from "@/components/navigation/header-account-button";
 import { motion } from "framer-motion";
 import {
   PieChart,
@@ -260,11 +261,7 @@ export default function StatsPage() {
               思い出を可視化して、自分を知ろう
             </p>
           </div>
-          <Link href="/account">
-            <Button variant="ghost" size="icon" title="アカウント">
-              <UserIcon className="h-5 w-5" />
-            </Button>
-          </Link>
+          <HeaderAccountButton />
         </div>
       </header>
 

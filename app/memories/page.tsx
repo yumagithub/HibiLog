@@ -21,6 +21,7 @@ import { CalendarView } from "@/components/memory/calendar-view";
 import { motion } from "framer-motion";
 import { MOOD_OPTIONS, MoodOption } from "@/lib/mood-emojis";
 import { AppLayout } from "@/components/layout/app-layout";
+import { HeaderAccountButton } from "@/components/navigation/header-account-button";
 
 // shadcn/ui Calendar & Popover
 import { Calendar as FilterCalendar } from "@/components/ui/calendar";
@@ -223,14 +224,10 @@ export default function MemoriesPage() {
 
   return (
     <AppLayout className="min-h-screen gradient-bg pb-48 md:pb-6">
-      <div className="container max-w-md mx-auto px-4 py-6">
+      <div className="container max-w-md md:max-w-6xl mx-auto px-4 py-6">
         <header className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">思い出</h1>
-          <Link href="/account">
-            <Button variant="ghost" size="icon" title="アカウント">
-              <UserIcon className="h-5 w-5" />
-            </Button>
-          </Link>
+          <HeaderAccountButton />
         </header>
         {/* 📅 ビュー切替 */}
         <div className="flex justify-end gap-2 mb-4">
