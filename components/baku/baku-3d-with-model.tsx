@@ -142,6 +142,7 @@ function BakuModelFromFile({
   // フレーム毎の更新処理
   useFrame((state, delta) => {
     if (!groupRef.current) return;
+    if (!mixer) return;
     if (isMenuOpen) return; // メニューが開いている間は動作停止  
     const group = groupRef.current;
 
@@ -267,7 +268,15 @@ export function Baku3DWithModel() {
       }, [supabase, memories]);
 
   return (
-    <div className="relative w-full h-[100vh] min-h-[600px] rounded-xl overflow-hidden bg-linear-to-b from-blue-50 to-purple-50 relative">
+    <div
+      className="relative w-full h-[100vh] min-h-[600px] rounded-xl overflow-hidden bg-linear-to-b from-blue-50 to-purple-50 relative"
+      style={{
+        backgroundImage: "url(/background.png)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
       {/* デバッグ用：開発環境でのみアニメーション情報を出力 */}
       {process.env.NODE_ENV === "development" && <GLBAnimationChecker />}
       <div className="absolute inset-0 z-0 h-full w-full">
@@ -276,7 +285,10 @@ export function Baku3DWithModel() {
         camera={{ position: [0, 5, 30], fov: 50 }}
         shadows
         frameloop="always"
-        gl={{ preserveDrawingBuffer: true }}
+        gl={{ alpha: true, preserveDrawingBuffer: true }}
+        onCreated={({ gl }) => {
+          gl.setClearColor(0x000000, 0);
+        }}
       >
         <ambientLight intensity={0.4} />
         <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
@@ -292,13 +304,14 @@ export function Baku3DWithModel() {
           receiveShadow
         >
           <planeGeometry args={[20, 20]} />
-          <meshStandardMaterial color="#f3f4f6" />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
 
         <Environment preset="sunset" />
         <OrbitControls
           enableZoom={false}
           enablePan={false}
+          enableRotate={false}
           autoRotate={false}
           autoRotateSpeed={2}
         />
