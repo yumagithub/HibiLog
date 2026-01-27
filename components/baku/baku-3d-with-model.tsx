@@ -32,9 +32,15 @@ function BakuModelFromFile({
   hunger: number;
 }) {
   const groupRef = useRef<Group>(null);
+  // ★ ストアから現在のサイズを取得
+  const size = useBakuStore((state) => state.size);
+  // ★ 追加：メニューの状態をストアから取得
 
-  // メニューの状態をストアから取得（動作停止用：hunger/sizeとは無関係）
   const isMenuOpen = useBakuStore((state) => state.isMenuOpen);
+
+  // ★ サイズに基づいたスケール計算（初期サイズ30cmを基準に、スケール2.0からスタート）
+  // 成長するにつれてモデルが大きくなります
+  const currentScale = 2.0 + (size - 30) * 0.1;
 
   // ウィンドウサイズに応じた移動範囲を計算（useRefで初期値を設定）
   const boundValueRef = useRef(
@@ -242,7 +248,7 @@ function BakuModelFromFile({
     <group ref={groupRef} position={[0, 0, 0]}>
       <group position={[5.4, 0, -1.0]}>
         {/* バクのモデル */}
-        <primitive object={scene} scale={2} position={[0, -1.5, 0]} />
+        <primitive object={scene} scale={currentScale} position={[0, -1.5, 0]} />
       </group>
     </group>
   );
