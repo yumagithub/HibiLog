@@ -16,6 +16,7 @@ export default function CameraPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<Facing>("environment");
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,9 +25,12 @@ export default function CameraPage() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
   const stopStream = useCallback(() => {
-    stream?.getTracks().forEach((t) => t.stop());
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
     setStream(null);
-  }, [stream]);
+  }, []);
 
   const startStream = useCallback(
     async (mode: Facing = facingMode) => {
@@ -38,6 +42,7 @@ export default function CameraPage() {
           video: { facingMode: { ideal: mode } },
           audio: false,
         });
+        streamRef.current = media;
         setStream(media);
         if (videoRef.current) {
           videoRef.current.srcObject = media;
@@ -45,13 +50,13 @@ export default function CameraPage() {
         }
       } catch (e) {
         setError(
-          "カメラにアクセスできません。ブラウザの権限を確認してください。"
+          "カメラにアクセスできません。ブラウザの権限を確認してください。",
         );
       } finally {
         setIsStarting(false);
       }
     },
-    [facingMode, stopStream]
+    [facingMode, stopStream],
   );
 
   // カメラページを開いたときに位置情報を取得
@@ -99,26 +104,26 @@ export default function CameraPage() {
         switch (error.code) {
           case error.PERMISSION_DENIED:
             setLocationError(
-              "位置情報の使用が拒否されました。ブラウザの設定を確認してください。"
+              "位置情報の使用が拒否されました。ブラウザの設定を確認してください。",
             );
             break;
           case error.POSITION_UNAVAILABLE:
             setLocationError(
-              "位置情報が利用できません。GPSやWi-Fiをオンにしてください。"
+              "位置情報が利用できません。GPSやWi-Fiをオンにしてください。",
             );
             break;
           case error.TIMEOUT:
             setLocationError(
-              "位置情報の取得がタイムアウトしました。もう一度お試しください。"
+              "位置情報の取得がタイムアウトしました。もう一度お試しください。",
             );
             break;
           default:
             setLocationError(
-              `位置情報の取得に失敗しました (Code: ${error.code})`
+              `位置情報の取得に失敗しました (Code: ${error.code})`,
             );
         }
       },
-      options
+      options,
     );
   };
 
@@ -252,7 +257,7 @@ export default function CameraPage() {
               className="h-14 w-14"
               title="反転"
             >
-              <RefreshCw className="!h-7 !w-7" />
+              <RefreshCw className="h-7! w-7!" />
             </Button>
           </div>
         </Card>

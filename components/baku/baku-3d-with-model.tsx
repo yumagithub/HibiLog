@@ -473,7 +473,7 @@ export function Baku3DWithModel() {
               setSelectedMemory(latestMemory);
               setIsDetailOpen(true);
             }}
-            className="w-12 h-16 flex-shrink-0 rounded-md overflow-hidden border border-white shadow-md active:scale-95 transition pointer-events-auto"
+            className="w-12 h-16 shrink-0 rounded-md overflow-hidden border border-white shadow-md active:scale-95 transition pointer-events-auto"
           >
             <img
               src={latestMemory.media_url || ""}

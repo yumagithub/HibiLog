@@ -255,7 +255,10 @@ export function UploadTab({ user }: { user: User | null }) {
               user_id: user.id,
               hunger_level: 70, // 初期値50 + 回復量20を想定
               baku_color: "blue", // 初期値
-              // last_fed_at, size, weightなどはDBのデフォルト値が使われる
+              size: 30.0,
+              weight: 5.0,
+              notification_interval: 6, // デフォルト6時間
+              last_fed_at: new Date().toISOString(),
             });
           if (insertError) throw insertError;
         }

@@ -19,14 +19,23 @@ export function useBakuProfileSync(user: User | null) {
     const loadBakuProfile = async () => {
       try {
         const now = new Date().toISOString();
+
+        console.log("[Baku] ユーザーID:", user.id);
+        console.log("[Baku] バクプロフィール取得を試みます...");
+
         const { data, error } = await supabase
           .from("baku_profiles")
           .select("hunger_level, last_fed_at")
           .eq("user_id", user.id)
           .single();
 
+        console.log("[Baku] APIレスポンス:", { data, error });
+
         // エラー処理ブロック
         if (error) {
+          console.log("[Baku] エラーコード:", error.code);
+          console.log("[Baku] エラーメッセージ:", error.message);
+
           if (error.code === "PGRST116") {
             // PGRST116 = 行が見つからない → 初回ログインなので作成
             console.log("バクプロフィールが見つかりません。新規作成します...");
@@ -37,21 +46,23 @@ export function useBakuProfileSync(user: User | null) {
               .insert({
                 user_id: user.id,
                 baku_color: "default",
-                size: 1.0,
-                weight: 1.0,
+                size: 30.0,
+                weight: 5.0,
                 hunger_level: 100,
                 last_fed_at: now,
-                notification_interval: "1-hour",
+                notification_interval: 6, // デフォルト6時間 (Integer)
               });
 
             if (insertError) {
               if (insertError.code === "23505") {
                 console.log("✅ バクプロフィールは既に存在します");
               } else {
-                console.error("バクプロフィール作成エラー:", insertError);
+                console.error("バクプロフィール作成エラー (詳細):", insertError);
+                console.error("エラーコード:", insertError.code);
+                console.error("ヒント:", insertError.hint);
               }
             } else {
-              console.log("✅ バクプロフィールを作成しました");
+              console.log("✅ バクプロフィールを作成しました (v2)");
             }
 
             //ストア更新はエラーブロック内で完結させる
