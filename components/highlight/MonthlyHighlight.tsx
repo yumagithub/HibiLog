@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useBakuStore } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion"; // 追加
 
 type Memory = {
   id: string;
@@ -110,12 +111,12 @@ export function MonthlyHighlight({ userId }: { userId: string | null }) {
       setCurrentIndex((prev) => (prev + 1) % memories.length);
   };
 
-  // ⏰ 自動スライド（5秒ごとに切り替え）
+  // ⏰ 自動スライド（4秒ごとに切り替え）
   useEffect(() => {
     if (memories.length === 0) return;
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % memories.length);
-    }, 5000);
+    }, 4000);
     return () => clearInterval(interval);
   }, [memories]); // memoriesが更新されるたびにインターバルもリセット
 
@@ -135,12 +136,22 @@ export function MonthlyHighlight({ userId }: { userId: string | null }) {
     <div 
         className="relative w-full max-w-md mx-auto mt-6 rounded-2xl overflow-hidden shadow-lg bg-black/30 backdrop-blur cursor-pointer" // 【修正】カーソルをポインターに変更
         onClick={handleSlideClick} // 【修正】クリックイベントハンドラを追加
-    >      
-      <img
-        src={current.media_url}
-        alt="思い出"
-        className="w-full h-64 object-cover transition-all duration-700"
-      />
+    >  
+    {/* 修正ポイント: AnimatePresence で画像を囲む */}
+      <div className="relative h-64 w-full bg-black flex items-center justify-center overflow-hidden">
+        <AnimatePresence initial={false}>
+          <motion.img
+            key={current.id} // IDをキーにすることで、切り替えをアニメーション化
+            src={current.media_url}
+            alt="思い出"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, position: "absolute" }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        </AnimatePresence> 
+      </div>     
       <div className="absolute bottom-0 w-full bg-black/60 text-white p-3 text-sm">
         
         {/* テキストと日付のコンテナ (中央揃え) */}

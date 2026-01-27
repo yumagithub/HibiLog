@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { Memory } from "./memories-tab";
+import type { Memory } from "@/app/memories/page";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface CalendarViewProps {

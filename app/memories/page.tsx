@@ -273,7 +273,7 @@ export default function MemoriesPage() {
                   <Button
                     variant={selectedDate ? "default" : "outline"}
                     size="sm"
-                    className="min-w-[140px] justify-between"
+                    className="min-w-[70px] justify-between"
                   >
                     <span className="text-xs truncate">{dateLabel}</span>
                     <CalendarIcon className="h-4 w-4" />

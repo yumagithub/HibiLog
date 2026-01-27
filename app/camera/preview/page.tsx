@@ -20,12 +20,15 @@ import type { GeolocationData } from "@/lib/types";
 import { checkAndSendAchievementNotification } from "@/app/actions";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
+import { findNearbyMemories } from "@/lib/location-highlight";
+import { LocationHighlightModal } from "@/components/memory/LocationHighlightModal";
 
 export default function CameraPreviewPage() {
   const supabase = createClient();
   const router = useRouter();
   const feedBaku = useBakuStore((state) => state.feedBaku);
   const addMemory = useBakuStore((state) => state.addMemory);
+  const memories = useBakuStore((state) => state.memories);
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,21 +40,42 @@ export default function CameraPreviewPage() {
   const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
   const [location, setLocation] = useState<GeolocationData>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [nearbyMemories, setNearbyMemories] = useState<any[]>([]);
+  const [allMemories, setAllMemories] = useState<any[]>([]);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
 
-  useEffect(() => {
-    // 認証チェック（ゲストモードも許可）
-    const checkUser = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setUser(session?.user || null);
+useEffect(() => {
+    const initPage = async () => {
+      // 1. 認証チェック
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUser = session?.user || null;
+      setUser(currentUser);
+
+      // 2. 判定用に過去の全思い出を取得
+      if (currentUser) {
+        const { data } = await supabase
+          .from("memories")
+          .select("*")
+          .eq("user_id", currentUser.id);
+        setAllMemories(data || []);
+      } else {
+        // ゲストモードはZustandから取得してMemory型に整形
+        const formatted = memories.map(m => ({
+          ...m,
+          memory_date: m.timestamp,
+          media_url: m.imageUrl,
+          text_content: m.textContent
+        }));
+        setAllMemories(formatted);
+      }
       setLoading(false);
     };
-    checkUser();
+
+    initPage();
 
     // 撮影した画像を取得
     try {
@@ -73,13 +97,33 @@ export default function CameraPreviewPage() {
         setLocation(null);
       }
     }
-  }, [supabase]);
+  }, [supabase, memories]);
 
   const handleRetake = () => {
     sessionStorage.removeItem("camera:lastShot");
     //撮り直し時に位置情報もクリア
     sessionStorage.removeItem("camera:location");
     router.push("/camera");
+  };
+
+  // ★ 近くの思い出をチェックしてモーダルを開くか、ホームへ戻るか決める関数
+  const checkAndNavigate = (lat: number | null, lng: number | null) => {
+    if (lat && lng) {
+      const found = findNearbyMemories(
+        { latitude: lat, longitude: lng },
+        allMemories,
+        50 // 50メートル以内
+      );
+
+      if (found.length > 0) {
+        setNearbyMemories(found);
+        setIsLocationModalOpen(true);
+        return; // モーダルを開くのでここでは遷移しない
+      }
+  
+    }
+    // 近くになければ1.5秒後にホームへ
+    setTimeout(() => router.push("/"), 1500);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -101,6 +145,23 @@ export default function CameraPreviewPage() {
     // 【追加】位置情報変数を準備
     const lat = location?.latitude || null;
     const lng = location?.longitude || null;
+
+    // ★ 判定用関数の定義（成功時に呼ぶため）
+    const checkNearby = (lat: number, lng: number) => {
+      const found = findNearbyMemories(
+        { latitude: lat, longitude: lng },
+        allMemories, // 過去の思い出データ
+        50 // 50メートル以内
+      );
+
+      if (found.length > 0) {
+        setNearbyMemories(found);
+        setIsLocationModalOpen(true);
+      } else {
+        // 近い思い出がなければ、通常通りホームへ
+        router.push("/");
+      }
+    };
 
     // デバッグ: 位置情報の値を確認
     console.log("📍 保存する位置情報:", { lat, lng, location });
@@ -134,13 +195,11 @@ export default function CameraPreviewPage() {
 
         // sessionStorageをクリア
         sessionStorage.removeItem("camera:lastShot");
-
-        // 少し待ってからホームに戻る
-        setTimeout(() => {
-          router.push("/");
-        }, 1500);
+        sessionStorage.removeItem("camera:location");
 
         setIsUploading(false);
+        // ★ 判定へ
+        checkAndNavigate(lat, lng);
         return;
       }
 
@@ -299,16 +358,14 @@ export default function CameraPreviewPage() {
       sessionStorage.removeItem("camera:lastShot");
       sessionStorage.removeItem("camera:location"); // 位置情報もクリア
 
-      // 少し待ってからホームに戻る
-      setTimeout(() => {
-        router.push("/");
-      }, 1500);
     } catch (error) {
       const err = error as Error;
       setMessage({ type: "error", text: err.message });
     } finally {
       setIsUploading(false);
     }
+    // ★ 判定へ
+    checkAndNavigate(lat, lng);
   };
 
   if (loading) {
@@ -539,6 +596,12 @@ export default function CameraPreviewPage() {
           </form>
         )}
       </div>
+      {/* ★ 近くの思い出ハイライトモーダル */}
+      <LocationHighlightModal
+        isOpen={isLocationModalOpen}
+        memories={nearbyMemories}
+        onClose={() => router.push("/")}
+      />
     </div>
   );
 }
