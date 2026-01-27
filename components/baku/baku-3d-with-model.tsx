@@ -265,7 +265,7 @@ export function Baku3DWithModel() {
     if (hunger === 0 && size !== DEFAULT_SIZE) {
       setSize(DEFAULT_SIZE);
     }
-  }, [hunger, size, setSize, DEFAULT_SIZE]);
+  }, [hunger, size, setSize]);
 
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
