@@ -198,22 +198,30 @@ export function CalendarView({ memories, onDateClick }: CalendarViewProps) {
                     {/* 日付番号 */}
                     <div
                       className={`
-                      absolute top-2 left-2 font-bold
-                      ${
-                        hasMemories
-                          ? "text-white text-xl drop-shadow-md"
-                          : "text-foreground text-lg"
-                      }
-                      ${!hasMemories && "text-gray-400"}
-                    `}
+                        absolute top-0 left-1 sm:top-1 sm:left-2
+                        ${
+                          hasMemories
+                            ? "text-white text-lg sm:text-2xl drop-shadow-md"
+                            : "text-foreground text-base sm:text-xl"
+                        }
+                        ${!hasMemories && "text-gray-400"}
+                      `}
                     >
                       {day}
                     </div>
 
-                    {/* 絵文字バッジ（右上） */}
+                    {/* 絵文字バッジ（右上）*/}
                     {hasMemories && dayMemories[0].mood_emoji && (
                       <motion.div
-                        className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm rounded-full w-10 h-10 flex items-center justify-center shadow-lg"
+                      className="
+                      absolute top-1 right-0
+                      bg-white/95 backdrop-blur-sm rounded-full
+                      w-5 h-5
+                      sm:w-10 sm:h-10
+                      flex items-center justify-center
+                      shadow-lg
+                    "
+                    
                         initial={{ scale: 0, rotate: -180 }}
                         animate={{ scale: 1, rotate: 0 }}
                         transition={{
@@ -230,12 +238,17 @@ export function CalendarView({ memories, onDateClick }: CalendarViewProps) {
                       >
                         {dayMemories[0].mood_emoji.startsWith("/") ? (
                           <Image
-                            src={dayMemories[0].mood_emoji}
-                            alt="mood"
-                            width={24}
-                            height={24}
-                            className="object-contain"
-                          />
+                          src={dayMemories[0].mood_emoji}
+                          alt="mood"
+                          width={24}
+                          height={24}
+                          className="
+                            object-contain
+                            w-3 h-3
+                            sm:w-6 sm:h-6
+                          "
+                        />
+                        
                         ) : (
                           <span className="text-xl">
                             {dayMemories[0].mood_emoji}
@@ -243,6 +256,7 @@ export function CalendarView({ memories, onDateClick }: CalendarViewProps) {
                         )}
                       </motion.div>
                     )}
+                    
 
                     {/* 複数投稿インジケーター */}
                     {dayMemories.length > 1 && (
