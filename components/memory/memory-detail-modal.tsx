@@ -17,7 +17,7 @@ import {
   FileText,
   MapPin,
 } from "lucide-react";
-import type { Memory } from "./memories-tab";
+import type { Memory } from  "@/app/memories/page";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface MemoryDetailModalProps {
@@ -74,6 +74,9 @@ export function MemoryDetailModal({
     if (e.key === "Escape") onClose();
   };
 
+  // ★ 1枚だけ（直近の思い出のみ）かどうかを判定
+  const isSingleMemory = memories.length <= 1;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
@@ -101,7 +104,7 @@ export function MemoryDetailModal({
         </Button>
 
         {/* ナビゲーションボタン - 前へ */}
-        {hasPrevious && (
+        {!isSingleMemory && hasPrevious && (
           <Button
             variant="ghost"
             size="icon"
@@ -113,7 +116,7 @@ export function MemoryDetailModal({
         )}
 
         {/* ナビゲーションボタン - 次へ */}
-        {hasNext && (
+        {!isSingleMemory && hasNext && (
           <Button
             variant="ghost"
             size="icon"
@@ -134,13 +137,13 @@ export function MemoryDetailModal({
             }}
           >
             {currentMemory.media_url ? (
-              <AnimatePresence mode="wait"> {/* 2. 切り替えアニメーション用 */}
+              <AnimatePresence initial={false}> {/* 2. 切り替えアニメーション用 */}
                 <motion.img
                   key={currentMemory.id}
                   src={currentMemory.media_url}
                   alt={currentMemory.text_content || "Memory"}
                   // --- スワイプ機能追加 ---
-                  drag="x"
+                  drag={isSingleMemory ? false : "x"}
                   dragConstraints={{ left: 0, right: 0 }}
                   dragElastic={0.6}
                   onDragEnd={(e, { offset, velocity }) => {
@@ -151,10 +154,13 @@ export function MemoryDetailModal({
                   // --- アニメーション設定 ---
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
+                  exit={{opacity: 0, position: "absolute" }}
+                  transition={{ duration: 0.4 }}
                   // --- スタイル維持 + スマホ最適化 ---
-                  className="touch-none cursor-grab active:cursor-grabbing"
+                  // className="touch-none cursor-grab active:cursor-grabbing"
+                  className={`max-w-full max-h-full object-contain ${
+                  isSingleMemory ? "cursor-default" : "cursor-grab active:cursor-grabbing"
+                }`}
                   style={{
                     maxWidth: "100%",
                     maxHeight: "100%",

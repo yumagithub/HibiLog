@@ -17,6 +17,8 @@ import { Vector3, MathUtils } from "three";
 import { GLBAnimationChecker } from "@/components/dev/glb-animation-checker";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client"; // プロジェクトのパスに合わせて調整してください
+import { MemoryDetailModal } from "@/components/memory/memory-detail-modal";
+import { Memory } from "@/app/memories/page";
 
 type BehaviorState = "Idle" | "Walking";
 
@@ -265,9 +267,10 @@ export function Baku3DWithModel() {
     }
   }, [hunger, size, setSize, DEFAULT_SIZE]);
 
-  const [latestMemory, setLatestMemory] = useState<{
-    media_url: string;
-  } | null>(null);
+  const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  const [latestMemory, setLatestMemory] = useState<Memory | null>(null);
   const supabase = createClient();
 
   // 最新の画像を取得
@@ -283,14 +286,14 @@ export function Baku3DWithModel() {
         // --- ログイン済み：自分の最新画像をSupabaseから取得 ---
         const { data, error } = await supabase
           .from("memories")
-          .select("media_url")
+          .select("*") //全部取る
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
         if (data) {
-          setLatestMemory(data);
+          setLatestMemory(data as Memory);
           return; // 取得できたら終了
         }
       }
@@ -299,9 +302,19 @@ export function Baku3DWithModel() {
       if (memories && memories.length > 0) {
         // 配列の最後（最新）の要素を取得
         const lastLocalMemory = memories[memories.length - 1];
-        setLatestMemory({ media_url: lastLocalMemory.imageUrl });
+        setLatestMemory({
+          id: lastLocalMemory.id,
+          media_url: lastLocalMemory.imageUrl, // imageUrl -> media_url
+          memory_date: lastLocalMemory.timestamp,
+          text_content: lastLocalMemory.textContent || null,
+          mood_emoji: lastLocalMemory.moodEmoji || null,
+          mood_category: lastLocalMemory.moodCategory || null,
+          latitude: lastLocalMemory.latitude,
+          longitude: lastLocalMemory.longitude,
+          user_id: "guest",
+          created_at: lastLocalMemory.timestamp,
+        } as Memory);
       } else {
-        // 画像がどこにもない場合
         setLatestMemory(null);
       }
     };
@@ -377,13 +390,19 @@ export function Baku3DWithModel() {
       <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[90%] flex items-center gap-3 z-10 pointer-events-none">
         {/* メーターの左：直近の写真 */}
         {latestMemory && (
-          <div className="w-12 h-16 shrink-0 rounded-md overflow-hidden border border-white shadow-md">
+          <button
+            onClick={() => {
+              setSelectedMemory(latestMemory);
+              setIsDetailOpen(true);
+            }}
+            className="w-12 h-16 flex-shrink-0 rounded-md overflow-hidden border border-white shadow-md active:scale-95 transition pointer-events-auto"
+          >
             <img
-              src={latestMemory.media_url}
+              src={latestMemory.media_url || ""}
               alt="最新の思い出"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover cursor-pointer"
             />
-          </div>
+          </button>
         )}
         <div className="flex-1 bg-white/80 backdrop-blur-sm rounded-full p-2">
           <div className="flex items-center justify-between mb-1 px-2">
@@ -400,6 +419,13 @@ export function Baku3DWithModel() {
           </div>
         </div>
       </div>
+      {/* ★ 追加：詳細モーダルコンポーネント */}
+      <MemoryDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        memory={selectedMemory}
+        memories={selectedMemory ? [selectedMemory] : []} // この1枚だけを渡す
+      />
       {/* サイズ表示（左上） */}
       <div className="absolute top-20 right-10">
         <div className="bg-white/80 backdrop-blur-sm rounded-lg px-3 py-1 shadow-sm">
