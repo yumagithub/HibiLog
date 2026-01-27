@@ -35,6 +35,33 @@ function BakuModelFromFile({
   // ★ 追加：メニューの状態をストアから取得
   const isMenuOpen = useBakuStore((state) => state.isMenuOpen);
 
+  // ウィンドウサイズに応じた移動範囲を計算（useRefで初期値を設定）
+  const boundValueRef = useRef(
+    typeof window !== "undefined" && window.innerWidth < 768 ? 6 : 8,
+  );
+
+  useEffect(() => {
+    const updateBound = () => {
+      // スマホ（幅 < 768px）：BOUND = 6
+      // タブレット・PC（幅 >= 768px）：BOUND = 8
+      if (typeof window !== "undefined") {
+        boundValueRef.current = window.innerWidth < 768 ? 6 : 8;
+      }
+    };
+
+    updateBound();
+    window.addEventListener("resize", updateBound);
+    return () => window.removeEventListener("resize", updateBound);
+  }, []);
+
+  // 初期位置を安全に中央へ
+  useEffect(() => {
+    if (groupRef.current) {
+      groupRef.current.position.set(0, 0, 0);
+      groupRef.current.rotation.set(0, 0, 0);
+    }
+  }, []);
+
   // 動作状態管理
   const [behavior, setBehavior] = useState<BehaviorState>("Idle");
 
@@ -47,6 +74,15 @@ function BakuModelFromFile({
   const previousActionRef = useRef<AnimationAction | null>(null);
   const { scene, animations } = useGLTF("/models/baku-model.glb");
   const { actions, mixer } = useAnimations(animations, groupRef);
+
+  // クリーンアップ時にアニメーションミキサーをクリア
+  useEffect(() => {
+    return () => {
+      if (mixer) {
+        mixer.stopAllAction();
+      }
+    };
+  }, [mixer]);
 
   const animNames = useMemo(() => {
     const names = Object.keys(actions);
@@ -145,7 +181,7 @@ function BakuModelFromFile({
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     if (!mixer) return;
-    if (isMenuOpen) return; // メニューが開いている間は動作停止  
+    if (isMenuOpen) return; // メニューが開いている間は動作停止
     const group = groupRef.current;
 
     // アニメーションミキサーの更新（getDeltaは1回のみ）
@@ -160,7 +196,7 @@ function BakuModelFromFile({
       const toTarget = new Vector3(
         targetPositionRef.current.x - group.position.x,
         0,
-        targetPositionRef.current.z - group.position.z
+        targetPositionRef.current.z - group.position.z,
       );
       const distanceToTarget = toTarget.length();
 
@@ -185,12 +221,17 @@ function BakuModelFromFile({
       // ベクトルから直接回転角度を計算（二重スムージング廃止）
       const targetRotation = Math.atan2(
         currentDirectionRef.current.x,
-        currentDirectionRef.current.z
+        currentDirectionRef.current.z,
       );
       group.rotation.y = targetRotation;
 
-      // 壁の境界判定
-      const BOUND = 8;
+      // 壁の境界判定（カメラのビューポートに基づきダイナミックに調整）
+      const vp = state.viewport.getCurrentViewport(
+        state.camera,
+        new Vector3(0, 0, 0),
+      );
+      const dynamicBound = Math.max(5, Math.min(8, vp.width * 0.45));
+      const BOUND = Math.min(boundValueRef.current, dynamicBound);
       if (
         group.position.x < -BOUND ||
         group.position.x > BOUND ||
@@ -218,8 +259,7 @@ function BakuModelFromFile({
 const DEFAULT_SIZE = 30;
 
 export function Baku3DWithModel() {
-
- const { status, hunger, memories, size, setSize } = useBakuStore();
+  const { status, hunger, memories, size, setSize } = useBakuStore();
 
   useEffect(() => {
     if (hunger === 0 && size !== DEFAULT_SIZE) {
@@ -236,56 +276,61 @@ export function Baku3DWithModel() {
   // 最新の画像を取得
   useEffect(() => {
     const fetchLatestMemory = async () => {
-          // 1. セッションからユーザー情報を取得
-          const { data: { session } } = await supabase.auth.getSession();
-          const user = session?.user;
+      // 1. セッションからユーザー情報を取得
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user;
 
-          if (user) {
-            // --- ログイン済み：自分の最新画像をSupabaseから取得 ---
-            const { data, error } = await supabase
-              .from("memories")
-              .select("*") //全部取る
-              .eq("user_id", user.id)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
+      if (user) {
+        // --- ログイン済み：自分の最新画像をSupabaseから取得 ---
+        const { data, error } = await supabase
+          .from("memories")
+          .select("*") //全部取る
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-            if (data) {
-              setLatestMemory(data as Memory);
-              return; // 取得できたら終了
-            }
-          }
+        if (data) {
+          setLatestMemory(data as Memory);
+          return; // 取得できたら終了
+        }
+      }
 
-          // --- ゲストモード or Supabaseに画像がない場合：Zustand(LocalStorage)から取得 ---
-          if (memories && memories.length > 0) {
-            // 配列の最後（最新）の要素を取得
-            const lastLocalMemory = memories[memories.length - 1];
-            setLatestMemory({
-                  id: lastLocalMemory.id,
-                  media_url: lastLocalMemory.imageUrl, // imageUrl -> media_url
-                  memory_date: lastLocalMemory.timestamp,
-                  text_content: lastLocalMemory.textContent || null,
-                  mood_emoji: lastLocalMemory.moodEmoji || null,
-                  mood_category: lastLocalMemory.moodCategory || null,
-                  latitude: lastLocalMemory.latitude,
-                  longitude: lastLocalMemory.longitude,
-                  user_id: "guest",
-                  created_at: lastLocalMemory.timestamp,
-                } as Memory);
-          } else {
-            setLatestMemory(null);
-          }
-        };
+      // --- ゲストモード or Supabaseに画像がない場合：Zustand(LocalStorage)から取得 ---
+      if (memories && memories.length > 0) {
+        // 配列の最後（最新）の要素を取得
+        const lastLocalMemory = memories[memories.length - 1];
+        setLatestMemory({
+          id: lastLocalMemory.id,
+          media_url: lastLocalMemory.imageUrl, // imageUrl -> media_url
+          memory_date: lastLocalMemory.timestamp,
+          text_content: lastLocalMemory.textContent || null,
+          mood_emoji: lastLocalMemory.moodEmoji || null,
+          mood_category: lastLocalMemory.moodCategory || null,
+          latitude: lastLocalMemory.latitude,
+          longitude: lastLocalMemory.longitude,
+          user_id: "guest",
+          created_at: lastLocalMemory.timestamp,
+        } as Memory);
+      } else {
+        setLatestMemory(null);
+      }
+    };
 
-        fetchLatestMemory();
-        
-        // memoriesが更新された時（投稿直後など）にも再実行されるように依存配列に追加
-      }, [supabase, memories]);
+    fetchLatestMemory();
+
+    // memoriesが更新された時（投稿直後など）にも再実行されるように依存配列に追加
+  }, [supabase, memories]);
 
   return (
     <div
-      className="relative w-full h-[100vh] min-h-[600px] rounded-xl overflow-hidden bg-linear-to-b from-blue-50 to-purple-50 relative"
+      className="relative w-full rounded-xl overflow-hidden bg-linear-to-b from-blue-50 to-purple-50"
       style={{
+        height: "100dvh",
+        minHeight: "600px",
+        maxHeight: "100dvh",
         backgroundImage: "url(/background.png)",
         backgroundSize: "cover",
         backgroundPosition: "center",
@@ -295,48 +340,54 @@ export function Baku3DWithModel() {
       {/* デバッグ用：開発環境でのみアニメーション情報を出力 */}
       {process.env.NODE_ENV === "development" && <GLBAnimationChecker />}
       <div className="absolute inset-0 z-0 h-full w-full">
-      <Canvas
-        resize={{ scroll: false, debounce: { scroll: 50, resize: 50 } }}
-        camera={{ position: [0, 5, 30], fov: 50 }}
-        shadows
-        frameloop="always"
-        gl={{ alpha: true, preserveDrawingBuffer: true }}
-        onCreated={({ gl }) => {
-          gl.setClearColor(0x000000, 0);
-        }}
-      >
-        <ambientLight intensity={0.4} />
-        <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
-        <pointLight position={[-5, 3, -5]} intensity={0.5} color="#a78bfa" />
-
-        {/* 3Dモデルを表示 */}
-        <BakuModelFromFile status={status} hunger={hunger} />
-
-        {/* 床 */}
-        <mesh
-          position={[0, -1.5, 0]}
-          rotation={[-Math.PI / 2, 0, 0]}
-          receiveShadow
+        <Canvas
+          resize={{ scroll: false, debounce: 0 }}
+          camera={{ position: [0, 5, 30], fov: 50 }}
+          shadows
+          frameloop="always"
+          dpr={[1, 1.5]}
+          gl={{
+            alpha: true,
+            preserveDrawingBuffer: false,
+            antialias: true,
+            powerPreference: "high-performance",
+            logarithmicDepthBuffer: true,
+          }}
+          onCreated={({ gl }) => {
+            gl.setClearColor(0x000000, 0);
+          }}
         >
-          <planeGeometry args={[20, 20]} />
-          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-        </mesh>
+          <ambientLight intensity={0.4} />
+          <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
+          <pointLight position={[-5, 3, -5]} intensity={0.5} color="#a78bfa" />
 
-        <Environment preset="sunset" />
-        <OrbitControls
-          enableZoom={false}
-          enablePan={false}
-          enableRotate={false}
-          autoRotate={false}
-          autoRotateSpeed={2}
-        />
-      </Canvas>
+          {/* 3Dモデルを表示 */}
+          <BakuModelFromFile status={status} hunger={hunger} />
+
+          {/* 床 */}
+          <mesh
+            position={[0, -1.5, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}
+            receiveShadow
+          >
+            <planeGeometry args={[20, 20]} />
+            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          </mesh>
+
+          <Environment preset="sunset" />
+          <OrbitControls
+            enableZoom={false}
+            enablePan={false}
+            enableRotate={false}
+            autoRotate={false}
+            autoRotateSpeed={2}
+          />
+        </Canvas>
       </div>
 
       {/* 空腹度表示 */}
       {/* シンプルな横並びレイアウト */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[90%] flex items-center gap-3 z-10 pointer-events-none">
-        
         {/* メーターの左：直近の写真 */}
         {latestMemory && (
           <button

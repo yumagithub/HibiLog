@@ -30,9 +30,10 @@ const statusMessages: Record<BakuStatus, string> = {
   critical: "危険！バクに思い出を食べさせてください！",
 };
 
+const MotionAlertTriangle = motion.create(AlertTriangle);
+
 export function BakuDisplay() {
   const { hunger, status } = useBakuStore();
-  const MotionAlertTriangle = motion(AlertTriangle);
 
   return (
     <motion.div
