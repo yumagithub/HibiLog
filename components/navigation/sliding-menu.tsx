@@ -58,7 +58,7 @@ export function SlidingMenu() {
         }}
         // transition を設定して、カチッと開く時も滑らかに
         transition={{ duration: 0.3 }}
-        className="fixed inset-0 bg-black/40 backdrop-blur-md z-[999] transform-gpu translate-z-0"
+        className="fixed inset-0 bg-black/40 backdrop-blur-md z-999 transform-gpu translate-z-0"
       />
 
       <motion.div
@@ -75,7 +75,7 @@ export function SlidingMenu() {
         exit={{ y: "100%" }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
         // コンテナ自体は透明にする
-        className="fixed inset-x-0 bottom-0 z-[1000] flex flex-col items-center pointer-events-none"
+        className="fixed inset-x-0 bottom-0 z-1000 flex flex-col items-center pointer-events-none"
         style={{ height: "40vh" }}
       >
         {/* --- 矢印の山（ハンドル） --- */}
@@ -111,7 +111,7 @@ export function SlidingMenu() {
             pointerEvents: isMenuOpen ? "auto" : "none",
           }}
           onDoubleClick={handleDoubleTap}
-          className="w-full h-full bg-white  rounded-t-[32px] shadow-[0_-10px_40px_rgba(0,0,0,0.2)] px-6 pt-10"
+          className="w-full h-full bg-white  rounded-t-32px shadow-[0_-10px_40px_rgba(0,0,0,0.2)] px-6 pt-10"
         >
           <div className="grid grid-cols-3 gap-y-8 max-w-md mx-auto">
             {externalNavItems.map((item) => {
