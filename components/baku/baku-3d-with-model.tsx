@@ -27,20 +27,20 @@ const DEFAULT_SIZE = 30;
 function BakuModelFromFile({
   status,
   hunger,
+  sizeCm,
 }: {
   status: string;
   hunger: number;
+  sizeCm: number;
 }) {
   const groupRef = useRef<Group>(null);
-  // ★ ストアから現在のサイズを取得
-  const size = useBakuStore((state) => state.size);
+  // メニューの状態をストアから取得（動作停止用：hunger/sizeとは無関係）
   // ★ 追加：メニューの状態をストアから取得
-
   const isMenuOpen = useBakuStore((state) => state.isMenuOpen);
 
   // ★ サイズに基づいたスケール計算（初期サイズ30cmを基準に、スケール2.0からスタート）
   // 成長するにつれてモデルが大きくなります
-  const currentScale = 2.0 + (size - 30) * 0.1;
+  const currentScale = 2.0 + (sizeCm - 30) * 0.1;
 
   // ウィンドウサイズに応じた移動範囲を計算（useRefで初期値を設定）
   const boundValueRef = useRef(
@@ -265,6 +265,8 @@ export function Baku3DWithModel() {
 
   // 画面表示・3Dは number が必要なため、未取得時は0扱い（必要なら変更可）
   const hungerFor3D = typeof hungerValue === "number" ? hungerValue : 0;
+  // 3D用サイズ（DB値がない場合はDEFAULT_SIZE）
+  const sizeFor3D = typeof sizeValue === "number" ? sizeValue : DEFAULT_SIZE;
 
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -319,6 +321,29 @@ export function Baku3DWithModel() {
         if (!updErr) {
           setSizeValue(DEFAULT_SIZE);
         }
+      }
+    };
+    // サイズを+0.5してDBへ保存する（成功時にローカルstateも更新）
+    const incrementBakuSize = async (delta = 0.5) => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const user = session?.user;
+      if (!user) return;
+
+      // 現在値（未取得ならDEFAULT_SIZE扱い）
+      const current = typeof sizeValue === "number" ? sizeValue : DEFAULT_SIZE;
+      const next = current + delta;
+
+      // DBを更新（テーブル：baku_profiles / カラム：size）
+      const { error: updErr } = await supabase
+        .from("baku_profiles")
+        .update({ size: next })
+        .eq("user_id", user.id);
+
+      if (!updErr) {
+        setSizeValue(next);
       }
     };
 
@@ -416,7 +441,7 @@ export function Baku3DWithModel() {
           <pointLight position={[-5, 3, -5]} intensity={0.5} color="#a78bfa" />
 
           {/* 3Dモデルを表示（空腹度はDB値のみ使用） */}
-          <BakuModelFromFile status={status} hunger={hungerFor3D} />
+          <BakuModelFromFile status={status} hunger={hungerFor3D} sizeCm={sizeFor3D} />
 
           {/* 床（当たり判定用の透明プレーン） */}
           <mesh
