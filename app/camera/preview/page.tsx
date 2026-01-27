@@ -18,9 +18,10 @@ import { MOOD_OPTIONS, type MoodOption } from "@/lib/mood-emojis";
 import { motion, AnimatePresence } from "framer-motion";
 import type { GeolocationData } from "@/lib/types";
 import { checkAndSendAchievementNotification } from "@/app/actions";
+import { format } from "date-fns";
+import { ja } from "date-fns/locale";
 import { findNearbyMemories } from "@/lib/location-highlight";
 import { LocationHighlightModal } from "@/components/memory/LocationHighlightModal";
-
 
 export default function CameraPreviewPage() {
   const supabase = createClient();
@@ -422,27 +423,26 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* 日付入力 */}
+              {/* 日付表示 */}
               <div className="space-y-2">
-                <Label htmlFor="memory-date">思い出の日付</Label>
-                <Input
-                  id="memory-date"
-                  type="date"
-                  value={memoryDate}
-                  onChange={(e) => setMemoryDate(e.target.value)}
-                  required
-                  disabled={isUploading}
-                />
+                <Label>思い出の日付</Label>
+                <div className="h-10 px-3 flex items-center rounded-md border bg-muted text-sm">
+                  {memoryDate
+                    ? format(new Date(memoryDate), "yyyy年MM月dd日", { locale: ja })
+                    : "-"}
+                </div>
               </div>
-
-              {/* 位置情報入力フィールド */}
+              
+              
+              {/* 位置情報入力フィールド
               {location && (
                 <div className="text-sm text-gray-600">
                   📍 {location.latitude.toFixed(6)},{" "}
                   {location.longitude.toFixed(6)}
                 </div>
               )}
-
+              */}
+              
               {/* 感情選択 */}
               <div className="space-y-2">
                 <Label>
