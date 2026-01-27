@@ -14,7 +14,7 @@ export function FloatingActionButton() {
   return (
     <motion.button
       onClick={handleClick}
-      className="fixed bottom-6 right-6 w-16 h-16 rounded-full bg-primary shadow-lg flex items-center justify-center z-[998] md:hidden"
+      className="fixed bottom-6 right-6 w-16 h-16 rounded-full bg-primary shadow-lg flex items-center justify-center z-998 md:hidden"
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
       initial={{ scale: 0, opacity: 0 }}
