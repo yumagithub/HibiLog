@@ -15,12 +15,13 @@ import { useBakuStore } from "@/lib/store";
 import type { Group, AnimationAction } from "three";
 import { Vector3, MathUtils } from "three";
 import { GLBAnimationChecker } from "@/components/dev/glb-animation-checker";
-import Image from "next/image";
-import { createClient } from "@/lib/supabase/client"; // プロジェクトのパスに合わせて調整してください
+import { createClient } from "@/lib/supabase/client";
 import { MemoryDetailModal } from "@/components/memory/memory-detail-modal";
-import { Memory } from "@/app/memories/page";
+import type { Memory } from "@/app/memories/page";
 
 type BehaviorState = "Idle" | "Walking";
+
+const DEFAULT_SIZE = 30;
 
 // 3Dモデルを読み込むコンポーネント
 function BakuModelFromFile({
@@ -31,7 +32,8 @@ function BakuModelFromFile({
   hunger: number;
 }) {
   const groupRef = useRef<Group>(null);
-
+  
+  // メニューの状態をストアから取得（動作停止用：hunger/sizeとは無関係）
   // ★ ストアから現在のサイズを取得
   const size = useBakuStore((state) => state.size);
   // ★ 追加：メニューの状態をストアから取得
@@ -74,19 +76,17 @@ function BakuModelFromFile({
   // 移動・回転計算用のRef
   const targetPositionRef = useRef(new Vector3(0, 0, 0)); // 目標地点
   const currentDirectionRef = useRef(new Vector3(1, 0, 0)); // 現在の向き（正規化済み）
-  const walkStartTimeRef = useRef(0); // 歩き始めた時刻
+  const walkStartTimeRef = useRef(0); // 歩き始めた時刻（将来の拡張用）
 
   // アニメーション管理
   const previousActionRef = useRef<AnimationAction | null>(null);
   const { scene, animations } = useGLTF("/models/baku-model.glb");
   const { actions, mixer } = useAnimations(animations, groupRef);
 
-  // クリーンアップ時にアニメーションミキサーをクリア
+  // クリーンアップ時にアニメーションミキサーを停止
   useEffect(() => {
     return () => {
-      if (mixer) {
-        mixer.stopAllAction();
-      }
+      if (mixer) mixer.stopAllAction();
     };
   }, [mixer]);
 
@@ -98,12 +98,12 @@ function BakuModelFromFile({
     };
   }, [actions]);
 
-  // パラメータ計算関数
+  // パラメータ計算（hungerに応じて確率・速度を調整）
   const getParams = () => {
     const h = Math.max(0, Math.min(100, hunger));
     return {
       walkProb: Math.max(0.15, 1.0 - (h / 100) * 0.35),
-      interval: [1500 + (h / 100) * 1500, 2500 + (h / 100) * 2500],
+      interval: [1500 + (h / 100) * 1500, 2500 + (h / 100) * 2500] as const,
       walkSpeed: Math.max(1.0, 1.5 - (h / 100) * 0.75),
       moveSpeed: Math.max(3.0, 5.0 - (h / 100) * 2.5),
     };
@@ -116,13 +116,12 @@ function BakuModelFromFile({
     const targetAnimName =
       behavior === "Walking" ? animNames.walk : animNames.stand;
     const newAction = actions[targetAnimName];
-
     if (!newAction) return;
 
     const prevAction = previousActionRef.current;
 
     if (prevAction !== newAction) {
-      // クロスフェード処理
+      // クロスフェード
       if (prevAction) {
         newAction.reset();
         newAction.play();
@@ -141,29 +140,27 @@ function BakuModelFromFile({
   // 意思決定ロジック
   useEffect(() => {
     // healthy状態: ランダムに歩く
-    // それ以外: stand状態を保持
+    // それ以外: Idleを維持
     if (status !== "healthy") {
       setBehavior("Idle");
       return;
     }
 
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
     const { walkProb, interval } = getParams();
     const [minTime, maxTime] = interval;
     const waitTime = Math.random() * (maxTime - minTime) + minTime;
 
     if (behavior === "Idle") {
-      // 待機中 -> 確率で歩行開始 or 待機継続
       timeoutId = setTimeout(() => {
         if (Math.random() < walkProb) {
-          // ランダムな目標地点を決定（-8〜8の範囲内）
+          // ランダムな目標地点を決定（-8〜8相当のスケール）
           const targetX = (Math.random() - 0.5) * 16;
           const targetZ = (Math.random() - 0.5) * 16;
           targetPositionRef.current.set(targetX, 0, targetZ);
 
           if (groupRef.current) {
             const rot = groupRef.current.rotation.y;
-            // 現在の回転角度からベクトルを計算
             currentDirectionRef.current
               .set(Math.sin(rot), 0, Math.cos(rot))
               .normalize();
@@ -174,7 +171,6 @@ function BakuModelFromFile({
         }
       }, waitTime);
     } else if (behavior === "Walking") {
-      // 歩行中 -> 一定時間歩いたら停止
       timeoutId = setTimeout(() => {
         setBehavior("Idle");
       }, waitTime);
@@ -188,9 +184,10 @@ function BakuModelFromFile({
     if (!groupRef.current) return;
     if (!mixer) return;
     if (isMenuOpen) return; // メニューが開いている間は動作停止
+
     const group = groupRef.current;
 
-    // アニメーションミキサーの更新（getDeltaは1回のみ）
+    // アニメーション更新
     mixer.update(delta);
 
     // 移動処理（歩きながら向き転換）
@@ -198,7 +195,6 @@ function BakuModelFromFile({
       const { moveSpeed } = getParams();
       const moveDist = moveSpeed * delta;
 
-      // 目標地点への方向を計算
       const toTarget = new Vector3(
         targetPositionRef.current.x - group.position.x,
         0,
@@ -206,45 +202,42 @@ function BakuModelFromFile({
       );
       const distanceToTarget = toTarget.length();
 
-      // 目標に到着したか判定（距離が0.5以下）
+      // 到着判定
       if (distanceToTarget < 0.5) {
-        // 目標に着いたので停止
         setBehavior("Idle");
         return;
       }
 
       toTarget.normalize();
 
-      // 緩やかに目標方向へ回転（ステアリング）
-      const steeringLerp = 0.08; // 回転速度の調整値
-      currentDirectionRef.current.lerp(toTarget, steeringLerp);
-      currentDirectionRef.current.normalize();
+      // ステアリング（緩やかに向きを目標へ）
+      const steeringLerp = 0.08;
+      currentDirectionRef.current.lerp(toTarget, steeringLerp).normalize();
 
       // 前進
       group.position.x += currentDirectionRef.current.x * moveDist;
       group.position.z += currentDirectionRef.current.z * moveDist;
 
-      // ベクトルから直接回転角度を計算（二重スムージング廃止）
-      const targetRotation = Math.atan2(
+      // 回転（方向ベクトルから算出）
+      group.rotation.y = Math.atan2(
         currentDirectionRef.current.x,
         currentDirectionRef.current.z,
       );
-      group.rotation.y = targetRotation;
 
-      // 壁の境界判定（カメラのビューポートに基づきダイナミックに調整）
+      // 壁の境界判定（ビューポートから動的に調整）
       const vp = state.viewport.getCurrentViewport(
         state.camera,
         new Vector3(0, 0, 0),
       );
       const dynamicBound = Math.max(5, Math.min(8, vp.width * 0.45));
       const BOUND = Math.min(boundValueRef.current, dynamicBound);
+
       if (
         group.position.x < -BOUND ||
         group.position.x > BOUND ||
         group.position.z < -BOUND ||
         group.position.z > BOUND
       ) {
-        // 境界を超えたら即座にIdleへ戻す
         group.position.x = MathUtils.clamp(group.position.x, -BOUND, BOUND);
         group.position.z = MathUtils.clamp(group.position.z, -BOUND, BOUND);
         setBehavior("Idle");
@@ -262,37 +255,89 @@ function BakuModelFromFile({
   );
 }
 
-const DEFAULT_SIZE = 30;
-
 export function Baku3DWithModel() {
-  const { status, hunger, memories, size, setSize } = useBakuStore();
+  // status/memoriesは既存設計上ストアを利用（hunger/sizeは利用しない）
+  const status = useBakuStore((state) => state.status);
+  const memories = useBakuStore((state) => state.memories);
 
-  useEffect(() => {
-    if (hunger === 0 && size !== DEFAULT_SIZE) {
-      setSize(DEFAULT_SIZE);
-    }
-  }, [hunger, size, setSize]);
+  // DB由来の値（ストアに依存しない）
+  const [hungerValue, setHungerValue] = useState<number | null>(null); // DB: hunger_level
+  const [sizeValue, setSizeValue] = useState<number | null>(null); // DB: size
+
+  // 画面表示・3Dは number が必要なため、未取得時は0扱い（必要なら変更可）
+  const hungerFor3D = typeof hungerValue === "number" ? hungerValue : 0;
 
   const [selectedMemory, setSelectedMemory] = useState<Memory | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-
   const [latestMemory, setLatestMemory] = useState<Memory | null>(null);
-  const supabase = createClient();
 
-  // 最新の画像を取得
+  // Supabaseクライアントを安定化（レンダー毎に作り直さない）
+  const supabase = useMemo(() => createClient(), []);
+
+  // DBから空腹度(hunger_level)とサイズ(size)を取得
+  useEffect(() => {
+    const fetchBakuState = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const user = session?.user;
+      if (!user) {
+        // 未ログイン（ゲスト）はDB状態が取れないためnullにする
+        setHungerValue(null);
+        setSizeValue(null);
+        return;
+      }
+
+      // ユーザーの状態を取得（テーブル名はプロジェクトに合わせて調整）
+      const { data, error } = await supabase
+        .from("baku_profiles")
+        .select("hunger_level, size")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error || !data) {
+        setHungerValue(null);
+        setSizeValue(null);
+        return;
+      }
+
+      const h =
+        typeof data.hunger_level === "number" ? data.hunger_level : null;
+      const s = typeof data.size === "number" ? data.size : null;
+
+      setHungerValue(h);
+      setSizeValue(s);
+
+      // 空腹度が0ならサイズをDEFAULT_SIZEに揃える（DBも更新する）
+      // ※DB更新を望まない場合は、このupdateブロックを削除してください
+      if (h === 0 && typeof s === "number" && s !== DEFAULT_SIZE) {
+        const { error: updErr } = await supabase
+          .from("baku_profiles")
+          .update({ size: DEFAULT_SIZE })
+          .eq("user_id", user.id);
+
+        if (!updErr) {
+          setSizeValue(DEFAULT_SIZE);
+        }
+      }
+    };
+
+    fetchBakuState();
+  }, [supabase]);
+
+  // 最新の画像を取得（ログイン時はDB、未ログイン時はローカルmemories）
   useEffect(() => {
     const fetchLatestMemory = async () => {
-      // 1. セッションからユーザー情報を取得
       const {
         data: { session },
       } = await supabase.auth.getSession();
       const user = session?.user;
 
       if (user) {
-        // --- ログイン済み：自分の最新画像をSupabaseから取得 ---
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("memories")
-          .select("*") //全部取る
+          .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -300,17 +345,16 @@ export function Baku3DWithModel() {
 
         if (data) {
           setLatestMemory(data as Memory);
-          return; // 取得できたら終了
+          return;
         }
       }
 
-      // --- ゲストモード or Supabaseに画像がない場合：Zustand(LocalStorage)から取得 ---
+      // ゲスト or DBに画像がない場合：Zustand(LocalStorage)のmemoriesから取得
       if (memories && memories.length > 0) {
-        // 配列の最後（最新）の要素を取得
         const lastLocalMemory = memories[memories.length - 1];
         setLatestMemory({
           id: lastLocalMemory.id,
-          media_url: lastLocalMemory.imageUrl, // imageUrl -> media_url
+          media_url: lastLocalMemory.imageUrl,
           memory_date: lastLocalMemory.timestamp,
           text_content: lastLocalMemory.textContent || null,
           mood_emoji: lastLocalMemory.moodEmoji || null,
@@ -326,9 +370,13 @@ export function Baku3DWithModel() {
     };
 
     fetchLatestMemory();
-
-    // memoriesが更新された時（投稿直後など）にも再実行されるように依存配列に追加
   }, [supabase, memories]);
+
+  // 表示用に0〜100へクランプ（DBが想定外の値でもUIが破綻しないように）
+  const hungerForUI =
+    typeof hungerValue === "number"
+      ? Math.max(0, Math.min(100, hungerValue))
+      : null;
 
   return (
     <div
@@ -345,6 +393,7 @@ export function Baku3DWithModel() {
     >
       {/* デバッグ用：開発環境でのみアニメーション情報を出力 */}
       {process.env.NODE_ENV === "development" && <GLBAnimationChecker />}
+
       <div className="absolute inset-0 z-0 h-full w-full">
         <Canvas
           resize={{ scroll: false, debounce: 0 }}
@@ -367,10 +416,10 @@ export function Baku3DWithModel() {
           <directionalLight position={[5, 5, 5]} intensity={1} castShadow />
           <pointLight position={[-5, 3, -5]} intensity={0.5} color="#a78bfa" />
 
-          {/* 3Dモデルを表示 */}
-          <BakuModelFromFile status={status} hunger={hunger} />
+          {/* 3Dモデルを表示（空腹度はDB値のみ使用） */}
+          <BakuModelFromFile status={status} hunger={hungerFor3D} />
 
-          {/* 床 */}
+          {/* 床（当たり判定用の透明プレーン） */}
           <mesh
             position={[0, -1.5, 0]}
             rotation={[-Math.PI / 2, 0, 0]}
@@ -391,10 +440,9 @@ export function Baku3DWithModel() {
         </Canvas>
       </div>
 
-      {/* 空腹度表示 */}
-      {/* シンプルな横並びレイアウト */}
+      {/* 空腹度表示（DB: hunger_level） */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[90%] flex items-center gap-3 z-10 pointer-events-none">
-        {/* メーターの左：直近の写真 */}
+        {/* メーター左：直近の写真 */}
         {latestMemory && (
           <button
             onClick={() => {
@@ -410,33 +458,36 @@ export function Baku3DWithModel() {
             />
           </button>
         )}
+
         <div className="flex-1 bg-white/80 backdrop-blur-sm rounded-full p-2">
           <div className="flex items-center justify-between mb-1 px-2">
             <span className="text-xs font-medium text-gray-700">
-              空腹度: {Math.round(hunger)}%
+              空腹度: {typeof hungerForUI === "number" ? Math.round(hungerForUI) : "-"}%
             </span>
             <span className="text-xs text-gray-500">{status}</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className="bg-linear-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-500"
-              style={{ width: `${hunger}%` }}
+              style={{ width: `${typeof hungerForUI === "number" ? hungerForUI : 0}%` }}
             />
           </div>
         </div>
       </div>
-      {/* ★ 追加：詳細モーダルコンポーネント */}
+
+      {/* 詳細モーダル */}
       <MemoryDetailModal
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
         memory={selectedMemory}
-        memories={selectedMemory ? [selectedMemory] : []} // この1枚だけを渡す
+        memories={selectedMemory ? [selectedMemory] : []}
       />
-      {/* サイズ表示（左上） */}
+
+      {/* サイズ表示（DB: size） */}
       <div className="absolute top-20 right-10">
         <div className="bg-white/80 backdrop-blur-sm rounded-lg px-3 py-1 shadow-sm">
           <span className="text-xs font-medium text-gray-700">
-            サイズ: {typeof size === "number" ? size.toFixed(1) : "-"} cm
+            サイズ: {typeof sizeValue === "number" ? sizeValue.toFixed(1) : "-"} cm
           </span>
         </div>
       </div>
